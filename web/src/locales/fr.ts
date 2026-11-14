@@ -3,6 +3,7 @@
 import type { Dict } from '../i18n'
 
 const d: Dict = {
+  'automático: mesmo endereço do painel, porta 8089': 'automatique : même adresse que le panneau, port 8089',
   'modo': 'mode',
   'API iniciada': 'API démarrée',
   'API parada': 'API arrêtée',

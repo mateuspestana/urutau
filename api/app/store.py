@@ -37,7 +37,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "spectrum_bin_khz": 50.0,
     "spectrum_gain": 40.0,
     "adsb_url": "http://ultrafeeder",
-    "tar1090_public": "http://localhost:8089",
+    "tar1090_public": "",  # vazio = mesmo endereço do painel, porta 8089 (funciona pela rede local e Tailscale)
     "acars_freqs": [131.550, 131.725, 131.825, 131.450, 131.125, 130.450, 130.425, 130.025],
     "vdl2_freqs": [136.975, 136.925, 136.875, 136.825, 136.775, 136.725],
     "datalink_gain": 40.0,

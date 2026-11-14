@@ -149,7 +149,7 @@ The installer:
 
 1. checks Docker and Docker Compose;
 2. looks for the receiver and, if needed, offers to blacklist the kernel’s digital TV driver (`dvb_usb_rtl28xxu`), which often claims the device;
-3. asks for the antenna location and whether other devices on the local network may open the panel;
+3. asks for the antenna location and who may open the panel: this machine only, the local network and Tailscale, or Tailscale only;
 4. writes the `.env` file and starts the containers.
 
 When it finishes, the panel is available at **http://localhost:3090**. For an unattended installation:
@@ -163,6 +163,20 @@ The installer downloads prebuilt images for PCs (amd64) and the Raspberry Pi (ar
 ### Windows (experimental)
 
 On Windows, Urutau runs inside WSL2, and the dongle is passed to Linux by [usbipd-win](https://github.com/dorssel/usbipd-win). The `install-windows.ps1` script automates the process. See the [Windows guide](docs/windows.en.md).
+
+### Access over the local network and Tailscale
+
+By default, the panel only opens on the computer itself. The installer offers three access options, stored as `URUTAU_BIND` in `.env`:
+
+| Option | `URUTAU_BIND` | Who can access it |
+|---|---|---|
+| 1. This machine only (default) | `127.0.0.1` | only the station computer |
+| 2. Local network and Tailscale | `0.0.0.0` | any device on the local network and on your [Tailscale](https://tailscale.com) network |
+| 3. Tailscale only | the machine’s `100.x.y.z` IP | only devices on your Tailscale network |
+
+With options 2 or 3, open `http://<station-address>:3090` on another device (for example, the machine’s Tailscale name or IP). Links to tar1090 and to the graphs automatically follow the address in use. With option 3, Tailscale must be connected before Docker starts. Anyone who can open the panel can also change the receiver mode, and the API controls the machine’s Docker: only allow access on trusted networks.
+
+To change the option later, run `./install.sh` again, or edit `URUTAU_BIND` in `.env` and run `docker compose up -d`.
 
 ## Operation
 
@@ -178,7 +192,7 @@ The antenna location can be changed at any time in the Settings tab. Three decim
 
 ## Privacy and external connections
 
-The panel is only reachable from the computer itself (`127.0.0.1`), unless local network access is allowed during installation. No reception data is sent to third parties: sharing with tracking networks (ADS-B Exchange, FlightAware and the like) and radiosonde upload to SondeHub are off by default.
+The panel is only reachable from the computer itself (`127.0.0.1`), unless access over the local network or Tailscale is allowed (see [Access over the local network and Tailscale](#access-over-the-local-network-and-tailscale)). No reception data is sent to third parties: sharing with tracking networks (ADS-B Exchange, FlightAware and the like) and radiosonde upload to SondeHub are off by default.
 
 The panel only connects to the internet to obtain information that cannot be produced locally:
 

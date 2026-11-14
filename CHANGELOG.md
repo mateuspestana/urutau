@@ -2,6 +2,13 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); as versões seguem o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [0.1.3] - 2026-11-14
+
+### Adicionado
+
+- Acesso pela rede local e pelo Tailscale: o instalador oferece três opções (só esta máquina, rede local e Tailscale, só Tailscale), gravadas em `URUTAU_BIND`.
+- Os links para o tar1090 e para os gráficos seguem o endereço pelo qual o painel foi aberto, em vez de apontar sempre para `localhost`.
+
 ## [0.1.2] - 2026-11-14
 
 Primeira versão pública.
@@ -34,4 +41,5 @@ Primeira versão pública.
 - Sem envio de dados a redes de rastreamento nem ao SondeHub; fontes distribuídas com o software.
 - A localização da antena é opcional e fica apenas no `.env` e no volume local.
 
+[0.1.3]: https://github.com/mateuspestana/urutau/releases/tag/v0.1.3
 [0.1.2]: https://github.com/mateuspestana/urutau/releases/tag/v0.1.2

@@ -5,8 +5,10 @@
 # tar1090: http://localhost:8089
 # API:     http://localhost:8000/docs
 #
-# Por padrão tudo fica preso a 127.0.0.1 (só esta máquina). Para abrir na rede de casa (ex.: Raspberry Pi
-# sem tela), ponha URUTAU_BIND=0.0.0.0 no .env — e lembre que a API controla o Docker desta máquina.
+# Por padrão tudo fica preso a 127.0.0.1 (só esta máquina). URUTAU_BIND no .env muda isso:
+#   0.0.0.0        → rede local e Tailscale (todas as interfaces)
+#   100.x.y.z      → só o IP do Tailscale desta máquina (tailscale ip -4)
+# Quem abre o painel também troca o modo do dongle, e a API controla o Docker desta máquina.
 
 name: urutau
 

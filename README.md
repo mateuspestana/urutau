@@ -149,7 +149,7 @@ O instalador:
 
 1. verifica o Docker e o Docker Compose;
 2. procura o receptor e, se necessário, oferece bloquear o driver de TV digital do kernel (`dvb_usb_rtl28xxu`), que costuma ocupar o dispositivo;
-3. pergunta a localização da antena e se o painel pode ser acessado por outros aparelhos da rede local;
+3. pergunta a localização da antena e quem pode abrir o painel: só esta máquina, a rede local e o Tailscale, ou só o Tailscale;
 4. grava o arquivo `.env` e inicia os containers.
 
 Ao final, o painel fica disponível em **http://localhost:3090**. Para instalação não interativa:
@@ -163,6 +163,20 @@ O instalador baixa imagens prontas para PC (amd64) e Raspberry Pi (arm64). Quand
 ### Windows (experimental)
 
 No Windows, o Urutau roda dentro do WSL2, e o dongle é repassado ao Linux pelo [usbipd-win](https://github.com/dorssel/usbipd-win). O script `install-windows.ps1` automatiza o processo. Consulte o [guia para Windows](docs/windows.md).
+
+### Acesso pela rede local e pelo Tailscale
+
+Por padrão, o painel só abre no próprio computador. O instalador oferece três opções de acesso, gravadas em `URUTAU_BIND` no `.env`:
+
+| Opção | `URUTAU_BIND` | Quem acessa |
+|---|---|---|
+| 1. Só esta máquina (padrão) | `127.0.0.1` | apenas o computador da estação |
+| 2. Rede local e Tailscale | `0.0.0.0` | qualquer aparelho da rede local e da sua rede [Tailscale](https://tailscale.com) |
+| 3. Só Tailscale | IP `100.x.y.z` da máquina | apenas aparelhos da sua rede Tailscale |
+
+Com as opções 2 ou 3, abra `http://<endereço-da-estação>:3090` em outro aparelho (por exemplo, o nome ou o IP da máquina no Tailscale). Os links para o tar1090 e para os gráficos acompanham automaticamente o endereço usado. Na opção 3, o Tailscale precisa estar conectado antes de o Docker iniciar. Quem consegue abrir o painel também pode trocar o modo do receptor, e a API controla o Docker da máquina: libere o acesso apenas em redes de confiança.
+
+Para trocar a opção depois, execute `./install.sh` novamente ou edite `URUTAU_BIND` no `.env` e rode `docker compose up -d`.
 
 ## Operação
 
@@ -178,7 +192,7 @@ A localização da antena pode ser alterada a qualquer momento na aba Config. Tr
 
 ## Privacidade e conexões externas
 
-O painel é acessível apenas no próprio computador (`127.0.0.1`), a menos que o acesso pela rede local seja autorizado durante a instalação. Nenhum dado de recepção é enviado a terceiros: o compartilhamento com redes de rastreamento (ADS-B Exchange, FlightAware e similares) e o envio de radiossondas ao SondeHub vêm desligados.
+O painel é acessível apenas no próprio computador (`127.0.0.1`), a menos que o acesso pela rede local ou pelo Tailscale seja autorizado (veja [Acesso pela rede local e pelo Tailscale](#acesso-pela-rede-local-e-pelo-tailscale)). Nenhum dado de recepção é enviado a terceiros: o compartilhamento com redes de rastreamento (ADS-B Exchange, FlightAware e similares) e o envio de radiossondas ao SondeHub vêm desligados.
 
 O painel se conecta à internet apenas para obter informações que não podem ser geradas localmente:
 

@@ -345,7 +345,12 @@ export default function App() {
 
 
   const markerMhz = markers.map((m) => m.freq_mhz).filter((x): x is number => x != null)
-  const tar1090Base = config?.tar1090_public || 'http://localhost:8089'
+  // tar1090 no mesmo endereço por onde o painel foi aberto (rede local, Tailscale), salvo URL explícita
+  const tar1090Base = (() => {
+    const v = (config?.tar1090_public || '').trim()
+    if (v && !/\/\/(localhost|127\.0\.0\.1)(:|\/|$)/.test(v)) return v
+    return `${location.protocol}//${location.hostname}:8089`
+  })()
   const freqNow = status?.params?.freq_mhz as number | undefined
   const mode = status?.mode || ''
   const holding = Boolean(mode && mode !== 'idle' && (mode !== 'adsb' || status?.ultrafeeder?.running))
@@ -944,6 +949,7 @@ export default function App() {
             <label>
               {t('URL do tar1090 (link)')}
               <input
+                placeholder={t('automático: mesmo endereço do painel, porta 8089')}
                 value={config?.tar1090_public ?? ''}
                 onChange={(e) => setConfig((c) => (c ? { ...c, tar1090_public: e.target.value } : c))}
               />

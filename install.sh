@@ -5,11 +5,12 @@
 # Uso:  ./install.sh            (pergunta o que precisa)
 #       URUTAU_LAT=-15.799 URUTAU_LON=-47.864 ./install.sh -y   (sem perguntas; rede local fica fechada)
 #       URUTAU_LANG=en ./install.sh                            (idioma: pt, en, es, fr, ru)
+#       URUTAU_BIND=0.0.0.0 ./install.sh                       (rede local e Tailscale; ou o IP 100.x do Tailscale)
 #
 # O que ele faz, nesta ordem, e só com confirmação quando mexe fora desta pasta:
 #   1. confere Docker e Docker Compose;
 #   2. procura o dongle RTL-SDR e o driver de TV do kernel que o disputa (oferece bloquear, com sudo);
-#   3. pergunta a localização da antena e se o painel pode ser aberto por outros aparelhos da rede;
+#   3. pergunta a localização da antena e quem pode abrir o painel (esta máquina, rede local/Tailscale);
 #   4. escreve o .env (só nesta pasta) e sobe os containers.
 set -euo pipefail
 
@@ -62,9 +63,11 @@ msg loc_ok "antena em %s, %s" "antenna at %s, %s" "antena en %s, %s" "antenne à
 msg loc_bad_y "URUTAU_LAT/URUTAU_LON inválidos: '%s' '%s'" "invalid URUTAU_LAT/URUTAU_LON: '%s' '%s'" "URUTAU_LAT/URUTAU_LON no válidos: '%s' '%s'" "URUTAU_LAT/URUTAU_LON invalides : '%s' '%s'" "недопустимые URUTAU_LAT/URUTAU_LON: '%s' '%s'"
 msg loc_bad "coordenadas inválidas; use graus decimais, com sul e oeste negativos." "invalid coordinates; use decimal degrees, with south and west negative." "coordenadas no válidas; usa grados decimales, con sur y oeste negativos." "coordonnées invalides ; utilisez des degrés décimaux, sud et ouest négatifs." "неверные координаты; используйте десятичные градусы, юг и запад со знаком минус."
 msg s4 "4. Quem pode abrir o painel" "4. Who can open the panel" "4. Quién puede abrir el panel" "4. Qui peut ouvrir le panneau" "4. Кто может открыть панель"
-msg s4_help1 "Só esta máquina é o mais seguro. Na rede local, qualquer aparelho conectado ao seu Wi-Fi" "This machine only is the safest choice. On the local network, any device on your Wi-Fi" "Solo esta máquina es lo más seguro. En la red local, cualquier dispositivo conectado a tu Wi-Fi" "Cette machine uniquement est le choix le plus sûr. Sur le réseau local, tout appareil connecté à votre Wi-Fi" "Безопаснее всего — только этот компьютер. В локальной сети любое устройство в вашем Wi-Fi"
-msg s4_help2 "abre o painel e troca o modo do dongle (útil num Raspberry Pi sem tela)." "can open the panel and change the dongle’s mode (useful on a headless Raspberry Pi)." "abre el panel y cambia el modo del dongle (útil en una Raspberry Pi sin pantalla)." "peut ouvrir le panneau et changer le mode du dongle (utile sur un Raspberry Pi sans écran)." "сможет открыть панель и сменить режим донгла (удобно для Raspberry Pi без экрана)."
-msg s4_ask "Liberar para outros aparelhos da rede local?" "Allow other devices on the local network?" "¿Permitir otros dispositivos de la red local?" "Autoriser les autres appareils du réseau local ?" "Разрешить другие устройства локальной сети?"
+msg s4_help1 "1) só esta máquina (mais seguro)   2) rede local e Tailscale   3) só Tailscale" "1) this machine only (safest)   2) local network and Tailscale   3) Tailscale only" "1) solo esta máquina (más seguro)   2) red local y Tailscale   3) solo Tailscale" "1) cette machine uniquement (le plus sûr)   2) réseau local et Tailscale   3) Tailscale uniquement" "1) только этот компьютер (безопаснее)   2) локальная сеть и Tailscale   3) только Tailscale"
+msg s4_help2 "Nas opções 2 e 3, quem acessa o painel também troca o modo do dongle; a API controla o Docker desta máquina." "With options 2 and 3, whoever opens the panel can also change the dongle mode; the API controls this machine's Docker." "En las opciones 2 y 3, quien abra el panel también puede cambiar el modo del dongle; la API controla el Docker de esta máquina." "Avec les options 2 et 3, quiconque ouvre le panneau peut aussi changer le mode du dongle ; l'API contrôle le Docker de cette machine." "В вариантах 2 и 3 любой, кто откроет панель, может менять режим донгла; API управляет Docker этого компьютера."
+msg s4_ask "Opção" "Option" "Opción" "Option" "Вариант"
+msg ts_none "Tailscale não encontrado ou desconectado (tailscale ip -4 vazio); usando só esta máquina." "Tailscale not found or not connected (tailscale ip -4 is empty); using this machine only." "Tailscale no encontrado o desconectado (tailscale ip -4 vacío); usando solo esta máquina." "Tailscale introuvable ou déconnecté (tailscale ip -4 vide) ; accès limité à cette machine." "Tailscale не найден или не подключён (tailscale ip -4 пусто); доступ только с этого компьютера."
+msg ts_note "o Tailscale precisa estar conectado antes do Docker subir, senão os containers não abrem a porta nesse IP." "Tailscale must be connected before Docker starts, otherwise the containers cannot bind to that IP." "Tailscale debe estar conectado antes de que arranque Docker; si no, los contenedores no pueden abrir el puerto en esa IP." "Tailscale doit être connecté avant le démarrage de Docker, sinon les conteneurs ne peuvent pas ouvrir le port sur cette IP." "Tailscale должен подключаться раньше запуска Docker, иначе контейнеры не смогут открыть порт на этом IP."
 msg bind_ok "painel em %s" "panel on %s" "panel en %s" "panneau sur %s" "панель на %s"
 msg env_bak "o .env anterior foi guardado como backup" "the previous .env was backed up" "el .env anterior se guardó como copia de seguridad" "l’ancien .env a été sauvegardé" "прежний .env сохранён как резервная копия"
 msg env_ok ".env escrito" ".env written" ".env escrito" ".env écrit" ".env записан"
@@ -176,8 +179,23 @@ say ""
 say "${b}$(m s4)${n}"
 say "    ${d}$(m s4_help1)${n}"
 say "    ${d}$(m s4_help2)${n}"
-BIND="127.0.0.1"
-if yesno "$(m s4_ask)" "n"; then BIND="0.0.0.0"; fi
+# URUTAU_BIND=… pula a pergunta (127.0.0.1, 0.0.0.0 ou o IP do Tailscale)
+BIND="${URUTAU_BIND:-}"
+if [[ -z "$BIND" ]]; then
+  cur="$(grep -E '^URUTAU_BIND=' .env 2>/dev/null | cut -d= -f2- || true)"
+  def=1
+  [[ "$cur" == "0.0.0.0" ]] && def=2
+  [[ "$cur" == 100.* ]] && def=3
+  ask "$(m s4_ask) (1/2/3)" "$def"
+  case "$REPLY" in
+    2) BIND="0.0.0.0" ;;
+    3)
+      BIND="$(tailscale ip -4 2>/dev/null | head -1 || true)"
+      if [[ -z "$BIND" ]]; then warn "$(m ts_none)"; BIND="127.0.0.1"; else warn "$(m ts_note)"; fi
+      ;;
+    *) BIND="127.0.0.1" ;;
+  esac
+fi
 ok "$(m bind_ok "$BIND")"
 
 if [[ -f .env ]]; then
@@ -205,6 +223,7 @@ else
 fi
 docker compose up -d
 host="localhost"
+[[ "$BIND" == 100.* ]] && host="$BIND"
 if [[ "$BIND" == "0.0.0.0" ]]; then
   # `hostname -I` não existe em todas as distros (ex.: Arch); `ip` é o plano B
   host="$({ hostname -I 2>/dev/null || ip -4 -o addr show scope global 2>/dev/null | awk '{sub("/.*", "", $4); print $4}'; } | awk 'NR==1{print $1}' || true)"

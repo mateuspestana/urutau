@@ -149,7 +149,7 @@ L’installateur :
 
 1. vérifie Docker et Docker Compose ;
 2. recherche le récepteur et, si nécessaire, propose de bloquer le pilote TV numérique du noyau (`dvb_usb_rtl28xxu`), qui accapare souvent le périphérique ;
-3. demande l’emplacement de l’antenne et si d’autres appareils du réseau local peuvent ouvrir le panneau ;
+3. demande l’emplacement de l’antenne et qui peut ouvrir le panneau : cette machine uniquement, le réseau local et Tailscale, ou Tailscale uniquement ;
 4. écrit le fichier `.env` et démarre les conteneurs.
 
 À la fin, le panneau est disponible à l’adresse **http://localhost:3090**. Pour une installation non interactive :
@@ -163,6 +163,20 @@ L’installateur télécharge des images prêtes pour PC (amd64) et Raspberry Pi
 ### Windows (expérimental)
 
 Sous Windows, Urutau fonctionne dans WSL2, et le dongle est transmis à Linux par [usbipd-win](https://github.com/dorssel/usbipd-win). Le script `install-windows.ps1` automatise la procédure. Consultez le [guide Windows (en anglais)](docs/windows.en.md).
+
+### Accès depuis le réseau local et Tailscale
+
+Par défaut, le panneau ne s’ouvre que sur l’ordinateur lui-même. L’installateur propose trois options d’accès, enregistrées dans `URUTAU_BIND` du fichier `.env` :
+
+| Option | `URUTAU_BIND` | Qui peut y accéder |
+|---|---|---|
+| 1. Cette machine uniquement (par défaut) | `127.0.0.1` | seulement l’ordinateur de la station |
+| 2. Réseau local et Tailscale | `0.0.0.0` | tout appareil du réseau local et de votre réseau [Tailscale](https://tailscale.com) |
+| 3. Tailscale uniquement | IP `100.x.y.z` de la machine | seulement les appareils de votre réseau Tailscale |
+
+Avec les options 2 ou 3, ouvrez `http://<adresse-de-la-station>:3090` sur un autre appareil (par exemple le nom ou l’IP de la machine dans Tailscale). Les liens vers tar1090 et vers les graphiques suivent automatiquement l’adresse utilisée. Avec l’option 3, Tailscale doit être connecté avant le démarrage de Docker. Quiconque peut ouvrir le panneau peut aussi changer le mode du récepteur, et l’API contrôle le Docker de la machine : n’autorisez l’accès que sur des réseaux de confiance.
+
+Pour changer d’option plus tard, relancez `./install.sh`, ou modifiez `URUTAU_BIND` dans `.env` puis exécutez `docker compose up -d`.
 
 ## Utilisation
 
@@ -178,7 +192,7 @@ L’emplacement de l’antenne peut être modifié à tout moment dans l’ongle
 
 ## Confidentialité et connexions externes
 
-Le panneau n’est accessible que depuis l’ordinateur lui-même (`127.0.0.1`), sauf si l’accès depuis le réseau local est autorisé pendant l’installation. Aucune donnée de réception n’est envoyée à des tiers : le partage avec les réseaux de suivi (ADS-B Exchange, FlightAware, etc.) et l’envoi des radiosondes vers SondeHub sont désactivés par défaut.
+Le panneau n’est accessible que depuis l’ordinateur lui-même (`127.0.0.1`), sauf si l’accès depuis le réseau local ou Tailscale est autorisé (voir [Accès depuis le réseau local et Tailscale](#accès-depuis-le-réseau-local-et-tailscale)). Aucune donnée de réception n’est envoyée à des tiers : le partage avec les réseaux de suivi (ADS-B Exchange, FlightAware, etc.) et l’envoi des radiosondes vers SondeHub sont désactivés par défaut.
 
 Le panneau ne se connecte à internet que pour obtenir des informations impossibles à produire localement :
 
