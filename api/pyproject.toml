@@ -1,0 +1,24 @@
+# Autor: Matheus C. Pestana
+# Só configuração de ferramentas: a API roda no container (requirements.txt); os testes rodam fora dele.
+[project]
+name = "urutau-api"
+version = "0.1.2"
+description = "Urutau — API da estação RTL-SDR caseira"
+requires-python = ">=3.11"
+license = "GPL-3.0-only"
+authors = [{ name = "Matheus C. Pestana" }]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.8"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = ["E501", "B008"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["ignore:Setting the dtype on a NumPy array:DeprecationWarning"]

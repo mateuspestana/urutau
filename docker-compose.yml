@@ -1,0 +1,90 @@
+# Urutau — estação RTL-SDR caseira: ultrafeeder (ADS-B) + API (árbitro do dongle) + painel web
+# Autor: Matheus C. Pestana — MACAPE Pesquisas e Consultoria em Tecnologia Ltda
+#
+# Painel:  http://localhost:3090
+# tar1090: http://localhost:8089
+# API:     http://localhost:8000/docs
+#
+# Por padrão tudo fica preso a 127.0.0.1 (só esta máquina). Para abrir na rede de casa (ex.: Raspberry Pi
+# sem tela), ponha URUTAU_BIND=0.0.0.0 no .env — e lembre que a API controla o Docker desta máquina.
+
+name: urutau
+
+services:
+  ultrafeeder:
+    image: ghcr.io/sdr-enthusiasts/docker-adsb-ultrafeeder:latest
+    container_name: urutau-ultrafeeder
+    hostname: ultrafeeder
+    restart: unless-stopped
+    device_cgroup_rules:
+      - "c 189:* rwm"
+    volumes:
+      - /dev/bus/usb:/dev/bus/usb:rw
+      - ultrafeeder_globe_history:/var/globe_history
+      - ultrafeeder_graphs:/run/collectd
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "${URUTAU_BIND:-127.0.0.1}:8089:80"
+    environment:
+      - TZ=${TZ:-America/Sao_Paulo}
+      - READSB_LAT=${READSB_LAT:-}
+      - READSB_LON=${READSB_LON:-}
+      - READSB_DEVICE_TYPE=rtlsdr
+      - READSB_GAIN=autogain
+      - READSB_RTLSDR_DEVICE=0
+      - READSB_ENABLE_BIASTEE=false
+      - READSB_RX_LOCATION_ACCURACY=2
+      - READSB_MAX_RANGE=300
+      - TAR1090_DEFAULTCENTERLAT=${READSB_LAT:-}
+      - TAR1090_DEFAULTCENTERLON=${READSB_LON:-}
+      - TAR1090_PAGETITLE=Urutau · ADS-B
+      # o estudo de alcance vive no painel (suavizado); o contorno nativo do tar1090 fica desligado
+      - TAR1090_ENABLE_ACTUALRANGE=false
+      - UPDATE_TAR1090=true
+      # nenhum feeder: os dados de ADS-B não saem desta máquina
+      - ULTRAFEEDER_CONFIG=
+
+  api:
+    image: ghcr.io/mateuspestana/urutau-api:${URUTAU_VERSION:-latest}
+    build: ./api
+    container_name: urutau-api
+    restart: unless-stopped
+    device_cgroup_rules:
+      - "c 189:* rwm"
+    volumes:
+      - /dev/bus/usb:/dev/bus/usb:rw
+      # a API para/liga o ultrafeeder e cria o container das radiossondas
+      - /var/run/docker.sock:/var/run/docker.sock
+      - api_data:/data
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "${URUTAU_BIND:-127.0.0.1}:8000:8000"
+    environment:
+      - TZ=${TZ:-America/Sao_Paulo}
+      - READSB_LAT=${READSB_LAT:-}
+      - READSB_LON=${READSB_LON:-}
+      - URUTAU_BIND=${URUTAU_BIND:-127.0.0.1}
+      - ULTRAFEEDER_CONTAINER=urutau-ultrafeeder
+      - SONDE_CONTAINER=urutau-radiosonde
+      # contato (URL ou e-mail) exigido pelo planespotters no User-Agent; vazio = sem fotos pelo servidor
+      - PHOTO_CONTACT=${PHOTO_CONTACT:-}
+    group_add:
+      # GID do grupo docker no host (o install.sh preenche; confira com: getent group docker)
+      - "${DOCKER_GID:-999}"
+    depends_on:
+      - ultrafeeder
+
+  web:
+    image: ghcr.io/mateuspestana/urutau-web:${URUTAU_VERSION:-latest}
+    build: ./web
+    container_name: urutau-web
+    restart: unless-stopped
+    ports:
+      - "${URUTAU_BIND:-127.0.0.1}:3090:80"
+    depends_on:
+      - api
+
+volumes:
+  ultrafeeder_globe_history:
+  ultrafeeder_graphs:
+  api_data:

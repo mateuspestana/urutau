@@ -1,0 +1,19 @@
+# configuração local (localização da antena, GID)
+.env
+.env.bak.*
+
+# dependências e builds
+web/node_modules/
+web/dist/
+*.tsbuildinfo
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.venv/
+
+# capturas e dados que nunca vão para o repositório
+*.wav
+*.raw
+*.cu8
+data/

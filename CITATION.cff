@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: "Se você usar este software, cite-o usando os metadados abaixo."
+title: "Urutau"
+type: software
+authors:
+  - family-names: Pestana
+    given-names: Matheus Cavalcanti
+repository-code: "https://github.com/mateuspestana/urutau"
+abstract: >-
+  Estação de recepção RTL-SDR para uso doméstico, em Docker para Linux,
+  Raspberry Pi e Windows (WSL2): ADS-B, AIS, ACARS/VDL2, APRS, rádio FM e
+  banda aeronáutica, análise de espectro, radiossondas, sensores ISM e
+  imagens dos satélites Meteor-M em um painel único, em cinco idiomas, com
+  os dados guardados localmente.
+keywords:
+  - RTL-SDR
+  - ADS-B
+  - AIS
+  - ACARS
+  - rádio definido por software
+  - Raspberry Pi
+  - Brasil
+license: GPL-3.0-only
+version: "0.1.2"
+date-released: "2026-11-14"
