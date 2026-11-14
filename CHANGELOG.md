@@ -2,6 +2,12 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); as versões seguem o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [0.1.4] - 2026-11-14
+
+### Corrigido
+
+- A agenda não devolvia o receptor ao modo anterior quando a captura de satélite (ou a busca de radiossondas) terminava sozinha: o fim natural do processo era confundido com uma troca de modo feita pela pessoa, e a estação ficava parada em modo livre até alguém religar o ADS-B.
+
 ## [0.1.3] - 2026-11-14
 
 ### Adicionado
@@ -41,5 +47,6 @@ Primeira versão pública.
 - Sem envio de dados a redes de rastreamento nem ao SondeHub; fontes distribuídas com o software.
 - A localização da antena é opcional e fica apenas no `.env` e no volume local.
 
+[0.1.4]: https://github.com/mateuspestana/urutau/releases/tag/v0.1.4
 [0.1.3]: https://github.com/mateuspestana/urutau/releases/tag/v0.1.3
 [0.1.2]: https://github.com/mateuspestana/urutau/releases/tag/v0.1.2

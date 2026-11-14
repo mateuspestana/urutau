@@ -225,8 +225,14 @@ async def _tick() -> None:
     mode = sdr.state.mode
 
     if job:
-        # a tarefa terminou (tempo esgotado, processo saiu ou o usuário trocou de modo)
-        if mode != job["mode"]:
+        # a tarefa terminou: tempo esgotado, processo saiu sozinho ou o usuário trocou de modo
+        if mode == "idle":
+            # o processo da tarefa acabou por conta própria (o SatDump sai com --timeout no fim da
+            # passagem; uma falha também deixa idle). Troca feita pela pessoa passa pelo POST /api/mode,
+            # que já limpa a tarefa antes, então aqui é sempre fim natural: devolve o modo anterior.
+            _note("fim", f"{job['label']}: processo terminou")
+            await _restore()
+        elif mode != job["mode"]:
             _note("fim", f"{job['label']}: modo trocado para {mode}")
             suppressed[job["mode"]] = job["until"]
             job.clear()
