@@ -1,5 +1,7 @@
 # Urutau
 
+[![DOI](https://zenodo.org/badge/1457874189.svg)](https://doi.org/10.5281/zenodo.24238099)
+
 [![versão](https://img.shields.io/github/v/release/mateuspestana/urutau?label=versão)](https://github.com/mateuspestana/urutau/releases)
 [![CI](https://img.shields.io/github/actions/workflow/status/mateuspestana/urutau/ci.yml?branch=main&label=CI)](https://github.com/mateuspestana/urutau/actions/workflows/ci.yml)
 [![licença](https://img.shields.io/github/license/mateuspestana/urutau?label=licença)](LICENSE)
