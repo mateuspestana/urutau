@@ -2,6 +2,12 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); as versões seguem o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [0.1.6] - 2026-11-15
+
+### Corrigido
+
+- Sensores ISM: o rtl_433 emite um JSON a cada troca de frequência (hop) sem campo `model`; a API tratava isso como sensor `?` e poluía a lista. Esses eventos de hop passam a ser ignorados.
+
 ## [0.1.5] - 2026-11-15
 
 ### Documentação
@@ -53,6 +59,8 @@ Primeira versão pública.
 - Sem envio de dados a redes de rastreamento nem ao SondeHub; fontes distribuídas com o software.
 - A localização da antena é opcional e fica apenas no `.env` e no volume local.
 
+[0.1.6]: https://github.com/mateuspestana/urutau/releases/tag/v0.1.6
+[0.1.5]: https://github.com/mateuspestana/urutau/releases/tag/v0.1.5
 [0.1.4]: https://github.com/mateuspestana/urutau/releases/tag/v0.1.4
 [0.1.3]: https://github.com/mateuspestana/urutau/releases/tag/v0.1.3
 [0.1.2]: https://github.com/mateuspestana/urutau/releases/tag/v0.1.2

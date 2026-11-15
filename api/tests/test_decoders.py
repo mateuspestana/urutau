@@ -41,6 +41,16 @@ def test_ism_chave_por_modelo_id_canal_e_guarda_mensagem():
     assert msgs and "temperature_C=24.5" in msgs[0]["text"]
 
 
+def test_ism_ignora_evento_de_hop():
+    before = len(obs.messages("ism"))
+    decoders.ism_line(json.dumps({
+        "time": 1794600000, "center_frequency": 433920000,
+        "frequencies": [315000000, 433920000], "hop_times": [60],
+    }))
+    assert _obj("ism", "?") is None
+    assert len(obs.messages("ism")) == before
+
+
 def test_aprs_posicao_e_pacote_invalido():
     decoders.aprs_line("APRS: PY1ABC-9>APRS,WIDE1-1:!1547.94S/04751.84W>Teste movel")
     o = _obj("aprs", "PY1ABC-9")

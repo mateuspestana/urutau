@@ -75,7 +75,10 @@ def ism_line(line: str) -> None:
         m = json.loads(line)
     except ValueError:
         return
-    model = m.get("model") or "?"
+    # hop/status do rtl_433: JSON sem "model" (só center_frequency / frequencies / hop_times)
+    model = m.get("model")
+    if not model:
+        return
     key = ":".join(str(x) for x in (model, m.get("id", ""), m.get("channel", "")) if x != "")
     ts = _float(m.get("time")) or time.time()
     data = {k: v for k, v in m.items() if k not in ("time", "mic", "mod")}
