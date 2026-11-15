@@ -2,6 +2,12 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); as versões seguem o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [0.1.5] - 2026-11-15
+
+### Documentação
+
+- Orientações no README para citar a versão utilizada e incluir seu DOI do Zenodo.
+
 ## [0.1.4] - 2026-11-14
 
 ### Corrigido
