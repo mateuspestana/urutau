@@ -235,7 +235,7 @@ O Urutau integra o trabalho de diversos projetos de código aberto: [docker-adsb
 
 ## Como citar
 
-Os metadados de citação estão em [CITATION.cff](CITATION.cff). No GitHub, use o botão *Cite this repository*.
+Os metadados de citação estão em [CITATION.cff](CITATION.cff). No GitHub, use o botão *Cite this repository*. Em trabalhos acadêmicos, indique a versão utilizada e, quando disponível, o DOI da versão arquivada no Zenodo.
 
 ## Licença
 
