@@ -393,29 +393,18 @@ async def finalize_capture(*, interrupted: bool = False) -> None:
                 pass
 
 
-_sink_orig_append: Any = None
-
-
 def _install_sink_ingest() -> None:
-    """stderr do SatDump também traz SNR/Progress; o _pump_log só faz append."""
-    global _sink_orig_append
-    sink = decoders.log["sat"]
-    if _sink_orig_append is None:
-        _sink_orig_append = sink.append
+    """O SatDump escreve SNR/Progress no stderr, que o leitor do processo só empilha em decoders.log["sat"]:
+    o gancho da fila alimenta as estatísticas ao vivo."""
+    def ingest(text: Any) -> None:
+        if isinstance(text, str):
+            ingest_satdump_line(_strip_ansi(text))
 
-        def append_and_ingest(text: str) -> None:
-            if isinstance(text, str):
-                ingest_satdump_line(_strip_ansi(text))
-            _sink_orig_append(text)
-
-        sink.append = append_and_ingest  # type: ignore[method-assign]
+    decoders.log["sat"].hook = ingest  # type: ignore[attr-defined]
 
 
 def _restore_sink_append() -> None:
-    global _sink_orig_append
-    if _sink_orig_append is not None:
-        decoders.log["sat"].append = _sink_orig_append  # type: ignore[method-assign]
-        _sink_orig_append = None
+    decoders.log["sat"].hook = None  # type: ignore[attr-defined]
 
 
 async def _spawn_satdump(pipeline: str, out: Path, meta: dict[str, Any], g: float, dur: int,
@@ -430,9 +419,7 @@ async def _spawn_satdump(pipeline: str, out: Path, meta: dict[str, Any], g: floa
         text = _strip_ansi(line)
         if not text:
             return
-        ingest_satdump_line(text)
-        # append já faz ingest via wrapper; evita duplicar o parse chamando o original
-        (_sink_orig_append or sink.append)(text[:300])
+        sink.append(text[:300])  # o gancho da fila faz o parse uma única vez
 
     await sdr.start_lines(
         "sat", cmd, on_line,

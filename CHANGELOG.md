@@ -2,6 +2,12 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); as versões seguem o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [0.6.1] - 2026-11-16
+
+### Corrigido
+
+- Captura de satélite: as estatísticas ao vivo (SNR, sincronismo, veredito) nunca eram atualizadas. O log do SatDump chega pelo stderr e o gancho que o lia tentava trocar o `append` de uma `deque`, o que o Python não permite; a primeira tentativa de captura de cada partida da API falhava com `'collections.deque' object attribute 'append' is read-only` e as seguintes rodavam sem estatísticas. O gancho agora é parte da própria fila do log.
+
 ## [0.6.0] - 2026-11-16
 
 ### Adicionado
@@ -117,6 +123,7 @@ Primeira versão pública.
 - Sem envio de dados a redes de rastreamento nem ao SondeHub; fontes distribuídas com o software.
 - A localização da antena é opcional e fica apenas no `.env` e no volume local.
 
+[0.6.1]: https://github.com/mateuspestana/urutau/releases/tag/v0.6.1
 [0.6.0]: https://github.com/mateuspestana/urutau/releases/tag/v0.6.0
 [0.5.2]: https://github.com/mateuspestana/urutau/releases/tag/v0.5.2
 [0.5.1]: https://github.com/mateuspestana/urutau/releases/tag/v0.5.1

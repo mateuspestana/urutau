@@ -19,7 +19,24 @@ import aprslib
 
 from . import obs
 
-log: dict[str, deque[str]] = {k: deque(maxlen=30) for k in ("ais", "ism", "aprs", "sonde", "sat", "rds")}
+
+class SinkDeque(deque):
+    """deque que avisa um ouvinte a cada linha nova (deque não aceita trocar `append` na instância)."""
+
+    hook: Any = None
+
+    def append(self, item: Any) -> None:
+        if self.hook is not None:
+            try:
+                self.hook(item)
+            except Exception:  # o ouvinte nunca derruba o leitor do processo
+                pass
+        super().append(item)
+
+
+log: dict[str, deque[str]] = {
+    k: (SinkDeque(maxlen=30) if k == "sat" else deque(maxlen=30)) for k in ("ais", "ism", "aprs", "sonde", "sat", "rds")
+}
 
 # AIS: campos que não interessam no estado do navio
 _AIS_SKIP = {"class", "device", "nmea", "scaled", "repeat", "second", "spare", "raim", "radio", "rxtime",

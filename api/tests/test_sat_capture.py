@@ -94,3 +94,22 @@ def test_start_capture_limpa_log(monkeypatch):
     sats.ingest_satdump_line(LINE_SNR, sats.live)
     assert abs(sats.live["snr_peak"] - 1.921056) < 1e-6
     assert len(decoders.log["sat"]) == 0
+
+
+def test_log_do_satdump_alimenta_as_estatisticas_ao_vivo():
+    """O stderr do SatDump só entra pela fila; a fila precisa ingerir (antes o gancho quebrava em deque)."""
+    from app import decoders, sats
+
+    sats.live.clear()
+    sats.live.update({"started_at": 0.0})
+    sats._install_sink_ingest()
+    try:
+        decoders.log["sat"].append("[18:04:00] (I) Progress -nan%, SNR : 5.500000dB, Peak SNR: 6.250000dB")
+        assert sats.live["snr_peak"] == 6.25
+        decoders.log["sat"].append("(I) Progress 3%, Viterbi : SYNCED BER : 0.01, Deframer : SYNCED")
+        assert sats.live["viterbi_sync_n"] == 1
+    finally:
+        sats._restore_sink_append()
+        sats.live.clear()
+    decoders.log["sat"].append("(I) Peak SNR: 99.0dB")  # sem gancho: só guarda
+    assert not sats.live
