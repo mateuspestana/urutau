@@ -45,6 +45,10 @@ msg docker_ok "Docker %s e Compose %s" "Docker %s and Compose %s" "Docker %s y C
 msg gid "grupo docker: GID %s" "docker group: GID %s" "grupo docker: GID %s" "groupe docker : GID %s" "группа docker: GID %s"
 msg s2 "2. Dongle RTL-SDR" "2. RTL-SDR dongle" "2. Dongle RTL-SDR" "2. Dongle RTL-SDR" "2. Донгл RTL-SDR"
 msg found "encontrado: %s" "found: %s" "encontrado: %s" "trouvé : %s" "найден: %s"
+msg found_serial "encontrado: %s (serial %s)" "found: %s (serial %s)" "encontrado: %s (serial %s)" "trouvé : %s (serial %s)" "найден: %s (serial %s)"
+msg dual_ask "Dois dongles. Qual serial fica no ADS-B? (o outro vai para FM/decodificadores)" "Two dongles. Which serial stays on ADS-B? (the other runs FM/decoders)" "Dos dongles. ¿Qué serial queda en ADS-B? (el otro va a FM/decodificadores)" "Deux dongles. Quel serial reste sur l’ADS-B ? (l’autre fait FM/décodeurs)" "Два донгла. Какой serial для ADS-B? (второй — FM/декодеры)"
+msg dual_ok "ADS-B no serial %s · decodificadores no %s" "ADS-B on serial %s · decoders on %s" "ADS-B en serial %s · decodificadores en %s" "ADS-B sur serial %s · décodeurs sur %s" "ADS-B на serial %s · декодеры на %s"
+msg dual_same "dois V4 com o mesmo serial de fábrica: use rtl_eeprom -d 0 -s 00000002 com um plugado por vez" "two V4s with the same factory serial: use rtl_eeprom -d 0 -s 00000002 with one plugged in at a time" "dos V4 con el mismo serial de fábrica: usa rtl_eeprom -d 0 -s 00000002 con uno enchufado cada vez" "deux V4 avec le même serial d’usine : rtl_eeprom -d 0 -s 00000002 avec un seul branché à la fois" "два V4 с одним заводским serial: rtl_eeprom -d 0 -s 00000002 с одним подключённым"
 msg not_found "nenhum dongle RTL-SDR conectado agora. Dá para instalar e conectar depois." "no RTL-SDR dongle plugged in right now. You can install now and plug it in later." "ningún dongle RTL-SDR conectado ahora. Puedes instalar y conectarlo después." "aucun dongle RTL-SDR branché pour l’instant. Vous pouvez installer maintenant et le brancher ensuite." "донгл RTL-SDR сейчас не подключён. Можно установить сейчас и подключить позже."
 msg dvb "o driver de TV digital do kernel (dvb_usb_rtl28xxu) está carregado e disputa o dongle." "the kernel’s digital TV driver (dvb_usb_rtl28xxu) is loaded and competes for the dongle." "el driver de TV digital del kernel (dvb_usb_rtl28xxu) está cargado y compite por el dongle." "le pilote TV numérique du noyau (dvb_usb_rtl28xxu) est chargé et accapare le dongle." "загружен драйвер цифрового ТВ ядра (dvb_usb_rtl28xxu), он перехватывает донгл."
 msg dvb_fix "A correção é bloquear o módulo: cria %s e o descarrega agora. Precisa de sudo." "The fix is to blacklist the module: it creates %s and unloads it now. Requires sudo." "La solución es bloquear el módulo: crea %s y lo descarga ahora. Requiere sudo." "La solution est de bloquer le module : crée %s et le décharge maintenant. Nécessite sudo." "Решение — запретить модуль: создаётся %s, модуль выгружается сейчас. Нужен sudo."
@@ -127,14 +131,50 @@ ok "$(m gid "$DOCKER_GID")"
 say ""
 say "${b}$(m s2)${n}"
 found=0
+SERIALS=()
 for dev in /sys/bus/usb/devices/*; do
   [[ -f "$dev/idVendor" ]] || continue
   if [[ "$(cat "$dev/idVendor")" == "0bda" && "$(cat "$dev/idProduct")" =~ ^(2838|2832)$ ]]; then
-    found=1
-    ok "$(m found "$(cat "$dev/product" 2>/dev/null || echo 'Realtek RTL2838')")"
+    found=$((found + 1))
+    prod="$(cat "$dev/product" 2>/dev/null || echo 'Realtek RTL2838')"
+    ser="$(cat "$dev/serial" 2>/dev/null || true)"
+    if [[ -n "$ser" ]]; then
+      SERIALS+=("$ser")
+      ok "$(m found_serial "$prod" "$ser")"
+    else
+      ok "$(m found "$prod")"
+    fi
   fi
 done
-[[ $found == 1 ]] || warn "$(m not_found)"
+[[ $found -ge 1 ]] || warn "$(m not_found)"
+
+ADSB_SERIAL="${URUTAU_ADSB_SERIAL:-}"
+SDR_SERIAL="${URUTAU_SDR_SERIAL:-}"
+if [[ -f .env ]]; then
+  ADSB_SERIAL="${ADSB_SERIAL:-$(grep -E '^URUTAU_ADSB_SERIAL=' .env 2>/dev/null | cut -d= -f2- || true)}"
+  SDR_SERIAL="${SDR_SERIAL:-$(grep -E '^URUTAU_SDR_SERIAL=' .env 2>/dev/null | cut -d= -f2- || true)}"
+fi
+if [[ $found -ge 2 && ${#SERIALS[@]} -ge 2 ]]; then
+  if [[ "${SERIALS[0]}" == "${SERIALS[1]}" ]]; then
+    warn "$(m dual_same)"
+  elif [[ -z "$ADSB_SERIAL$SDR_SERIAL" || "$ADSB_SERIAL" == "$SDR_SERIAL" ]]; then
+    ask "$(m dual_ask) [${SERIALS[0]}/${SERIALS[1]}]" "${ADSB_SERIAL:-${SERIALS[0]}}"
+    ADSB_SERIAL="$REPLY"
+    if [[ "$ADSB_SERIAL" == "${SERIALS[0]}" ]]; then
+      SDR_SERIAL="${SERIALS[1]}"
+    else
+      SDR_SERIAL="${SERIALS[0]}"
+    fi
+    # se a pessoa digitou um serial que não está na lista, o outro vira o restante se houver só 2
+    if [[ "$ADSB_SERIAL" != "${SERIALS[0]}" && "$ADSB_SERIAL" != "${SERIALS[1]}" ]]; then
+      ADSB_SERIAL="${SERIALS[0]}"
+      SDR_SERIAL="${SERIALS[1]}"
+    fi
+    ok "$(m dual_ok "$ADSB_SERIAL" "$SDR_SERIAL")"
+  else
+    ok "$(m dual_ok "$ADSB_SERIAL" "$SDR_SERIAL")"
+  fi
+fi
 
 if lsmod 2>/dev/null | grep -q '^dvb_usb_rtl28xxu'; then
   warn "$(m dvb)"
@@ -247,6 +287,8 @@ setkv READSB_LAT "$LAT"
 setkv READSB_LON "$LON"
 setkv URUTAU_BIND "$BIND"
 setkv DOCKER_GID "$DOCKER_GID"
+setkv URUTAU_ADSB_SERIAL "${ADSB_SERIAL:-}"
+setkv URUTAU_SDR_SERIAL "${SDR_SERIAL:-}"
 # só grava senhas quando BIND não é local (ou quando já vieram do ambiente no -y local)
 if ! is_local_bind "$BIND"; then
   setkv URUTAU_PASSWORD "$ADMIN_PW"

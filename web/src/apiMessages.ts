@@ -9,5 +9,6 @@ import { markApi } from './i18n'
 export const API_MESSAGES = [
   markApi('voz/SSTV em 145.800 FM (eventos) e APRS em 145.825'),
   markApi('RTL-SDR V4 via USB (um modo por vez)'),
+  markApi('Dois dongles: ADS-B permanente + decodificadores no outro'),
   markApi('defina a localização da estação em Config antes de procurar sondas'),
 ]

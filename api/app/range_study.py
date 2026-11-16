@@ -318,6 +318,11 @@ async def poll_loop() -> None:
                         flightlog.ingest(aircraft, store.receiver())
                     except Exception as e:  # log não pode derrubar o estudo
                         print(f"flightlog: {e}", flush=True)
+                    try:
+                        from . import alerts
+                        alerts.on_aircraft(aircraft)
+                    except Exception as e:
+                        print(f"alerts: {e}", flush=True)
                     save_every += 1
                     if save_every >= 15:  # ~30s
                         study.save()

@@ -5,6 +5,7 @@ com o SatDump. A agenda unificada mora em `schedule.py` (este módulo só reexpo
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import re
 import time
@@ -18,8 +19,12 @@ from skyfield.api import EarthSatellite, load, wgs84
 from . import decoders, sdr, store
 
 SAT_DIR = store.DATA / "sat"
+THUMB_DIR = SAT_DIR / ".thumbs"
 TLE_PATH = store.DATA / "tle.json"
 TLE_MAX_AGE_S = 24 * 3600
+TRACK_STEP_S = 10.0
+THUMB_MAX_W = 1280
+THUMB_MIN_W = 32
 
 # Limiares do veredito (dados reais da estação, antena de estoque, nov/2026)
 SNR_WEAK_DB = 3.0
@@ -108,11 +113,122 @@ def _compute(tle: dict[str, list[str]], lat: float, lon: float, hours: float, mi
                 cur["los"] = t.utc_datetime().timestamp()
                 cur["los_az"] = round((sat - here).at(t).altaz()[1].degrees)
                 if cur["max_el"] >= min_el or meta["kind"] == "info":
-                    items.append(cur | {"sat": sid, "name": meta["name"], "freq": meta["freq"],
-                                        "kind": meta["kind"]})
+                    items.append(cur | {
+                        "sat": sid, "name": meta["name"], "freq": meta["freq"],
+                        "kind": meta["kind"], "id": pass_id(sid, cur["aos"]),
+                    })
                 cur = {}
     items.sort(key=lambda p: p["aos"])
     return items
+
+
+def pass_id(sat: str, aos: float) -> str:
+    """Id estável da passagem: satélite + AOS inteiro (epoch)."""
+    return f"{sat}-{int(aos)}"
+
+
+def parse_pass_id(pid: str) -> tuple[str, int] | None:
+    if not pid or "-" not in pid:
+        return None
+    sat, aos_s = pid.rsplit("-", 1)
+    if sat not in BY_ID:
+        return None
+    try:
+        return sat, int(aos_s)
+    except ValueError:
+        return None
+
+
+def _sample_track(sat_id: str, aos: float, los: float, lat: float, lon: float,
+                  lines: list[str], step: float = TRACK_STEP_S) -> list[dict[str, Any]]:
+    """Amostras az/el a cada `step` s entre AOS e LOS (inclusive)."""
+    here = wgs84.latlon(lat, lon, 20)
+    sat = EarthSatellite(lines[1], lines[2], lines[0], _ts)
+    if los < aos:
+        return []
+    n = int((los - aos) / step) + 1
+    samples: list[dict[str, Any]] = []
+    for i in range(n):
+        t = aos + i * step
+        if t > los + 1e-6:
+            break
+        ti = _ts.from_datetime(datetime.fromtimestamp(t, UTC))
+        alt, az, _ = (sat - here).at(ti).altaz()
+        samples.append({"t": round(t, 1), "az": round(az.degrees, 1), "el": round(alt.degrees, 1)})
+    if samples and samples[-1]["t"] < los - 0.5:
+        ti = _ts.from_datetime(datetime.fromtimestamp(los, UTC))
+        alt, az, _ = (sat - here).at(ti).altaz()
+        samples.append({"t": round(los, 1), "az": round(az.degrees, 1), "el": round(alt.degrees, 1)})
+    return samples
+
+
+async def track(pass_key: str) -> dict[str, Any] | None:
+    """Trajetória az/el de uma passagem (`sat-aos`). Reusa TLE em cache e `_compute`."""
+    parsed = parse_pass_id(pass_key)
+    if not parsed:
+        return None
+    sat_id, aos_i = parsed
+    rx = store.receiver()
+    if rx is None:
+        return None
+    data = await tles()
+    tle = data.get("tle") or {}
+    lines = tle.get(sat_id)
+    if not lines:
+        return None
+    # tenta achar a passagem no cache; senão recalcula janela curta em torno do AOS
+    items = _passes.get("items") or []
+    match = next((p for p in items if p.get("id") == pass_key or (
+        p["sat"] == sat_id and int(p["aos"]) == aos_i)), None)
+    if not match:
+        start = datetime.fromtimestamp(aos_i - 600, UTC)
+        items = await asyncio.to_thread(_compute, {sat_id: lines}, rx[0], rx[1], 6.0, 0.0, start)
+        match = next((p for p in items if p["sat"] == sat_id and int(p["aos"]) == aos_i), None)
+    if not match:
+        return None
+    samples = await asyncio.to_thread(
+        _sample_track, sat_id, match["aos"], match["los"], rx[0], rx[1], lines)
+    return {
+        "id": pass_key,
+        "sat": sat_id,
+        "name": match.get("name") or BY_ID[sat_id]["name"],
+        "aos": match["aos"],
+        "los": match["los"],
+        "tca": match.get("tca"),
+        "max_el": match.get("max_el"),
+        "step_s": TRACK_STEP_S,
+        "points": samples,
+    }
+
+
+def _altaz_now(sat_id: str, lines: list[str], lat: float, lon: float) -> dict[str, Any]:
+    here = wgs84.latlon(lat, lon, 20)
+    sat = EarthSatellite(lines[1], lines[2], lines[0], _ts)
+    t = _ts.now()
+    alt, az, _ = (sat - here).at(t).altaz()
+    meta = BY_ID[sat_id]
+    return {
+        "sat": sat_id,
+        "name": meta["name"],
+        "az": round(az.degrees, 1),
+        "el": round(alt.degrees, 1),
+        "above": alt.degrees > 0,
+    }
+
+
+async def now_positions() -> list[dict[str, Any]]:
+    """Az/el atuais de cada satélite rastreado (com TLE em cache)."""
+    rx = store.receiver()
+    if rx is None:
+        return []
+    data = await tles()
+    tle = data.get("tle") or {}
+    out: list[dict[str, Any]] = []
+    for sid, lines in tle.items():
+        if sid not in BY_ID:
+            continue
+        out.append(await asyncio.to_thread(_altaz_now, sid, lines, rx[0], rx[1]))
+    return out
 
 
 async def passes(force: bool = False) -> list[dict[str, Any]]:
@@ -269,6 +385,12 @@ async def finalize_capture(*, interrupted: bool = False) -> None:
         })
         live["finalized"] = True
         _restore_sink_append()
+        if ver == "ok":
+            try:
+                from . import alerts
+                alerts.on_sat_ok(str(live["dir"]), sat=live.get("sat"), images=images)
+            except Exception:
+                pass
 
 
 _sink_orig_append: Any = None
@@ -298,8 +420,9 @@ def _restore_sink_append() -> None:
 
 async def _spawn_satdump(pipeline: str, out: Path, meta: dict[str, Any], g: float, dur: int,
                          sat_id: str) -> None:
-    cmd = ["satdump", "live", pipeline, str(out), "--source", "rtlsdr", "--samplerate", "1.024e6",
-           "--frequency", f"{meta['freq']}e6", "--gain", str(g), "--timeout", str(max(30, dur))]
+    cmd = ["satdump", "live", pipeline, str(out), "--source", "rtlsdr", *sdr.device_args("satdump"),
+           "--samplerate", "1.024e6", "--frequency", f"{meta['freq']}e6", "--gain", str(g),
+           "--timeout", str(max(30, dur))]
     sink = decoders.log["sat"]
     _install_sink_ingest()
 
@@ -385,18 +508,34 @@ async def start_capture(sat_id: str, duration: float | None, gain: float | None)
     return ""
 
 
+def _image_priority(rel: str) -> tuple[int, str]:
+    """Compostos RGB primeiro; depois ordem alfabética do caminho."""
+    name = rel.lower()
+    rgb = 0 if ("rgb" in name or "composite" in name) else 1
+    return (rgb, rel)
+
+
 def captures(limit: int = 30) -> list[dict[str, Any]]:
     if not SAT_DIR.exists():
         return []
     out = []
-    for d in sorted((p for p in SAT_DIR.iterdir() if p.is_dir()), reverse=True)[:limit]:
+    dirs = sorted(
+        (p for p in SAT_DIR.iterdir() if p.is_dir() and not p.name.startswith(".")),
+        reverse=True,
+    )[:limit]
+    for d in dirs:
         meta: dict[str, Any] = {}
         try:
             meta = json.loads((d / "capture.json").read_text())
         except (OSError, ValueError):
             pass
-        imgs = sorted(str(p.relative_to(SAT_DIR)) for p in d.rglob("*") if p.suffix.lower() in (".png", ".jpg"))
-        size = sum(p.stat().st_size for p in d.rglob("*") if p.is_file())
+        imgs = sorted(
+            (str(p.relative_to(SAT_DIR)) for p in d.rglob("*")
+             if p.is_file() and p.suffix.lower() in (".png", ".jpg", ".jpeg")
+             and ".thumbs" not in p.parts),
+            key=_image_priority,
+        )
+        size = sum(p.stat().st_size for p in d.rglob("*") if p.is_file() and ".thumbs" not in p.parts)
         # capturas antigas sem veredito continuam válidas (UI mostra "sem dados")
         out.append(meta | {"dir": d.name, "images": imgs[:40], "image_count": len(imgs), "bytes": size})
     return out
@@ -411,6 +550,36 @@ def safe_path(rel: str) -> Path | None:
     if base not in p.parents or not p.is_file():
         return None
     return p
+
+
+def make_thumb(rel: str, w: int = 480) -> Path | None:
+    """Gera (ou reusa) miniatura JPEG em SAT_DIR/.thumbs/. Valida com safe_path."""
+    src = safe_path(rel)
+    if not src:
+        return None
+    if src.suffix.lower() not in (".png", ".jpg", ".jpeg", ".webp"):
+        return None
+    width = max(THUMB_MIN_W, min(int(w or 480), THUMB_MAX_W))
+    try:
+        mtime = int(src.stat().st_mtime)
+    except OSError:
+        return None
+    key = hashlib.sha1(f"{rel}|{width}|{mtime}".encode()).hexdigest()[:20]
+    out = THUMB_DIR / f"{key}_{width}.jpg"
+    if out.is_file():
+        return out
+    try:
+        from PIL import Image
+        THUMB_DIR.mkdir(parents=True, exist_ok=True)
+        with Image.open(src) as im:
+            im = im.convert("RGB") if im.mode not in ("RGB", "L") else im
+            if im.mode == "L":
+                im = im.convert("RGB")
+            im.thumbnail((width, width), Image.Resampling.LANCZOS)
+            im.save(out, "JPEG", quality=82, optimize=True)
+    except Exception:
+        return None
+    return out if out.is_file() else None
 
 
 def safe_capture_dir(dirname: str) -> Path | None:
@@ -443,7 +612,7 @@ def delete_empty_captures() -> int:
         return 0
     n = 0
     for d in list(SAT_DIR.iterdir()):
-        if not d.is_dir():
+        if not d.is_dir() or d.name.startswith("."):
             continue
         if _count_images(d) == 0:
             shutil.rmtree(d, ignore_errors=True)

@@ -34,7 +34,7 @@ The project is meant for anyone who wants to observe their own airspace and wate
 | [ISM sensors](#ism-sensors-433-mhz) | Weather stations, thermometers and other wireless sensors | 433.92 MHz |
 | [Satellites](#satellite-images-meteor-m) | Meteor-M satellite images, verdict and SNR per pass | 137.9 MHz |
 
-Beyond the receivers, the panel offers a [schedule](#schedule) (satellites, radiosondes, modes and audio recording), [health](#health) checks for the receiver and antenna, an [aircraft log](#aircraft-log), a [range study](#range-study), [performance graphs](#graphs), [markers](#markers) and an interface in [five languages](#languages-and-appearance).
+Beyond the receivers, the panel offers a [schedule](#schedule) (satellites, radiosondes, modes and audio recording), [health](#health) checks for the receiver and antenna, browser-only [alerts](#alerts), an [aircraft log](#aircraft-log), a [range study](#range-study), [performance graphs](#graphs), [markers](#markers) and an interface in [five languages](#languages-and-appearance).
 
 ### Panel and tuning scale
 
@@ -110,6 +110,8 @@ The Russian Meteor-M weather satellites transmit live images of the Earth in LRP
 
 The default LRPT pipeline is **auto**: it starts at 72k and, if after about two minutes SNR is high without sync, switches to 80k for the rest of the pass. Empty captures can be deleted from the panel. The [schedule](#schedule) automatically captures every pass above a minimum elevation and returns the receiver to the previous mode afterwards.
 
+The panel shows a polar SkyPlot with the pass arc and the satellite’s live position, and a gallery of captures grouped by day, with thumbnails and a viewer (zoom, download and delete).
+
 To get images, use an outdoor antenna with open sky. A typical V-dipole for 137 MHz has arms of about 53.4 cm, opened to 120°, mounted horizontally with a north–south axis (a QFH also works). Indoors you will rarely get an image.
 
 <!-- Image from a Meteor pass captured by the station: to be added. -->
@@ -134,6 +136,10 @@ The Graphs tab shows the historical series produced by graphs1090: aircraft coun
 
 Frequencies and geographic points of interest can be saved as markers. Frequency markers are tuned with one click; position markers appear on the map.
 
+### Alerts
+
+Rules live in the Settings tab (emergency squawk, military, low and near, hex/registration/flight watchlists, new ship, radiosonde nearby or descending, satellite capture with an image). Notices stay in the browser only: bell with a count, toast and a count in the tab title. The system Notification API is optional and needs HTTPS or `localhost` — no Telegram or email.
+
 ### Schedule
 
 The Schedule tab shows who gets the receiver over the next 48 hours: satellite passes, radiosonde windows and your own entries (mode changes or FM/airband audio recording as WAV on the server). Priority is one-off → satellite → sonde → recurring. A satellite preempts a running sonde and restores it if the window is still open. The same Meteor auto-capture and sonde-search switches live on this tab (with a shortcut from the Satellites and Radiosondes tabs).
@@ -148,7 +154,7 @@ The interface is available in Portuguese (default), English, Spanish, French and
 
 ## Requirements
 
-- **RTL-SDR receiver.** The reference model is the [RTL-SDR Blog V4](https://www.rtl-sdr.com/v4/), sold with dipole antennas.
+- **RTL-SDR receiver.** The reference model is the [RTL-SDR Blog V4](https://www.rtl-sdr.com/v4/), sold with dipole antennas. With one dongle, behaviour is unchanged (one mode at a time). A second dongle is optional: set `URUTAU_ADSB_SERIAL` and `URUTAU_SDR_SERIAL` in `.env` to keep ADS-B on the ultrafeeder at all times and run other modes on the second receiver. Two V4 units ship with the same serial `00000001` — with one plugged in at a time, run `rtl_eeprom -d 0 -s 00000002` and reconnect. **Not validated on hardware.**
 - **Computer:** Linux (Ubuntu, Debian, Fedora, Arch and derivatives), Raspberry Pi 4 or 5 with 64-bit Raspberry Pi OS, or Windows 10/11 with WSL2 (experimental).
 - **Docker** with the Compose plugin.
 - **An antenna suited to the service.** The antenna supplied with the receiver, used indoors, handles FM and nearby aircraft. Ships, satellites and radiosondes require an outdoor antenna, or one by a window with a view of the sky or the sea.
@@ -196,6 +202,8 @@ By default, the panel only opens on the computer itself. The installer offers th
 
 With options 2 or 3, open `http://<station-address>:3090` on another device (for example, the machine’s Tailscale name or IP). Links to tar1090 and to the graphs automatically follow the address in use and go through the same authenticated proxy on port `:8089`. The API port (`8000`) listens only on `127.0.0.1`. With option 3, Tailscale must be connected before Docker starts. With a password set, only the admin can change the receiver mode; the API controls the machine’s Docker: only allow access on trusted networks.
 
+System browser notifications (Notification API) only exist on HTTPS or `localhost`. On `http://100.x.y.z` they do not appear; the bell, toast and tab title still work. For HTTPS on the Tailscale network, with the panel only on `127.0.0.1:3090`, use for example `tailscale serve --bg 3090` (check `tailscale serve --help` for your version).
+
 To change the option later, run `./install.sh` again, or edit `URUTAU_BIND` in `.env` and run `docker compose up -d`.
 
 ### Panel password
@@ -223,10 +231,17 @@ The panel only connects to the internet to obtain information that cannot be pro
 | Purpose | Service | Data sent |
 |---|---|---|
 | Satellite orbits | CelesTrak | satellite number (once a day) |
-| Map background | Esri (ArcGIS) | the map area being viewed |
+| Map background | Esri (or another provider), via the Urutau machine | tile z/x/y, once per tile (cache under `/data/tiles`); the browser only talks to `/api/tiles` |
+| Offline map (optional) | local PMTiles file under `/data/maps/` | none |
 | Aircraft registration and type | database shipped with tar1090 | prefix of the aircraft code |
 | Aircraft photo, when one is selected | planespotters.net | aircraft code and registration |
-| HTML range report, when opened | unpkg | request for the Leaflet map library |
+
+The HTML range report embeds Leaflet; it does not fetch a library from a CDN. For an offline map, generate a PMTiles extract (ODbL licence / OpenStreetMap and Protomaps attribution) and place the file in `/data/maps/` on the API volume:
+
+```bash
+pmtiles extract https://build.protomaps.com/<YYYYMMDD>.pmtiles region.pmtiles \
+  --bbox=<west>,<south>,<east>,<north>
+```
 
 Fonts and other panel assets ship with the software. The antenna location is kept only in the `.env` file and the local Docker volume.
 

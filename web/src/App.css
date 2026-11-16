@@ -646,6 +646,11 @@ label {
   stroke: var(--accent);
   stroke-width: 2;
 }
+.needle.secondary line {
+  stroke: color-mix(in oklab, var(--accent) 55%, var(--dial-muted));
+  stroke-width: 1.5;
+  stroke-dasharray: 3 2;
+}
 .needle.parked line {
   stroke: var(--dial-muted);
 }
@@ -727,6 +732,107 @@ label {
   box-shadow: var(--shadow);
   font-size: 13.5px;
   animation: toast-in 220ms var(--ease);
+}
+
+/* alertas (sino no cabeçalho) */
+.alerts-bell {
+  position: relative;
+}
+.alerts-bell-btn {
+  position: relative;
+}
+.alerts-bell-btn.has-unread {
+  color: var(--accent-text);
+}
+.alerts-count {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 16px;
+  text-align: center;
+}
+.alerts-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 1500;
+  width: min(360px, calc(100vw - 24px));
+  max-height: min(420px, 70vh);
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.alerts-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+}
+.alerts-panel-head .linkish {
+  background: none;
+  border: none;
+  color: var(--accent-text);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0;
+}
+.alerts-notif-btn {
+  margin: 8px 12px 0;
+  height: var(--btn-h);
+  font-size: 12.5px;
+}
+.alerts-list {
+  list-style: none;
+  margin: 0;
+  padding: 8px 0;
+  overflow: auto;
+  flex: 1;
+}
+.alerts-list li {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.alerts-list li.seen {
+  opacity: 0.55;
+}
+.alerts-list li:last-child {
+  border-bottom: none;
+}
+.alerts-kind {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.alerts-list strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+.alerts-list time {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.alerts-form label.check {
+  grid-column: 1 / -1;
+  white-space: normal;
 }
 @keyframes toast-in {
   from {
@@ -1827,14 +1933,23 @@ label.check {
   gap: 10px;
   margin-top: 10px;
 }
-.sat-grid a {
+.sat-grid a,
+.sat-thumb {
   display: block;
   color: var(--muted);
   font-size: 11px;
   text-decoration: none;
   overflow: hidden;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  width: 100%;
 }
-.sat-grid img {
+.sat-grid img,
+.sat-thumb img {
   display: block;
   width: 100%;
   aspect-ratio: 1;
@@ -1843,15 +1958,192 @@ label.check {
   background: var(--bg-elev);
   transition: transform 400ms var(--ease);
 }
-.sat-grid a:hover img {
+.sat-grid a:hover img,
+.sat-thumb:hover img {
   transform: scale(1.02);
 }
-.sat-grid span {
+.sat-grid span,
+.sat-thumb span {
   display: block;
   padding-top: 4px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.sat-passes-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 280px);
+  gap: var(--gap);
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .sat-passes-layout {
+    grid-template-columns: 1fr;
+  }
+}
+.sat-row-sel td {
+  background: color-mix(in oklab, var(--accent) 8%, transparent);
+}
+.sky-plot-wrap {
+  position: sticky;
+  top: 12px;
+}
+.sky-plot-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+.sky-plot {
+  width: 100%;
+  max-width: 280px;
+}
+.sky-plot svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.sky-plot-disc {
+  fill: var(--bg-elev);
+  stroke: var(--line);
+  stroke-width: 1;
+}
+.sky-plot-ring {
+  fill: none;
+  stroke: var(--line);
+  stroke-width: 1;
+  opacity: 0.7;
+}
+.sky-plot-cross {
+  stroke: var(--line);
+  stroke-width: 1;
+  opacity: 0.45;
+}
+.sky-plot-el {
+  fill: var(--muted);
+  font-size: 10px;
+  font-family: var(--font-mono);
+}
+.sky-plot-card {
+  fill: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+}
+.sky-plot-arc {
+  stroke: var(--accent);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.sky-plot-aos {
+  fill: var(--muted);
+}
+.sky-plot-los {
+  fill: var(--text);
+}
+.sky-plot-live {
+  fill: var(--accent);
+  stroke: var(--bg);
+  stroke-width: 2;
+}
+.sky-plot-caption {
+  margin: 6px 0 0;
+  font-size: 12px;
+}
+.sat-day + .sat-day {
+  margin-top: 22px;
+}
+.sat-day-title {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0 0 10px;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+.sat-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: color-mix(in oklab, var(--bg) 55%, transparent);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.sat-viewer-panel {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  max-width: min(1100px, 100%);
+  max-height: 92vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.sat-viewer-meta {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.sat-viewer-meta .spacer {
+  flex: 1;
+  min-width: 8px;
+}
+.sat-viewer-stage {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 240px;
+  max-height: calc(92vh - 64px);
+  background: var(--bg-elev);
+}
+.sat-viewer-img-wrap {
+  flex: 1;
+  overflow: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  max-height: calc(92vh - 64px);
+}
+.sat-viewer-img-wrap img {
+  max-width: 100%;
+  max-height: calc(92vh - 96px);
+  object-fit: contain;
+  transform-origin: center center;
+  transition: transform 200ms var(--ease);
+}
+.sat-viewer-nav {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  margin: 0 4px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 22px;
+  line-height: 1;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+}
+.sat-viewer-nav:hover {
+  border-color: var(--accent);
+}
+a.ghost {
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 12px;
+  color: var(--text);
+  text-decoration: none;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  font-size: 13px;
+}
+a.ghost:hover {
+  border-color: var(--line);
 }
 .rds-ps {
   font-size: clamp(28px, 3vw, 40px);

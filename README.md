@@ -36,7 +36,7 @@ O projeto se destina a quem quer observar o próprio espaço aéreo e marítimo 
 | [Sensores ISM](#sensores-ism-433-mhz) | Estações meteorológicas, termômetros e outros sensores sem fio | 433,92 MHz |
 | [Satélites](#imagens-de-satélite-meteor-m) | Imagens dos satélites Meteor-M, veredito e SNR por passagem | 137,9 MHz |
 
-Além dos receptores, o painel oferece [agenda](#agenda) (satélites, radiossondas, modos e gravação de áudio), [saúde](#saúde) do receptor e da antena, [registro de aeronaves](#registro-de-aeronaves), [estudo de alcance](#estudo-de-alcance), [gráficos de desempenho](#gráficos), [marcadores](#marcadores) e interface em [cinco idiomas](#idiomas-e-aparência).
+Além dos receptores, o painel oferece [agenda](#agenda) (satélites, radiossondas, modos e gravação de áudio), [saúde](#saúde) do receptor e da antena, [alertas](#alertas) só no navegador, [registro de aeronaves](#registro-de-aeronaves), [estudo de alcance](#estudo-de-alcance), [gráficos de desempenho](#gráficos), [marcadores](#marcadores) e interface em [cinco idiomas](#idiomas-e-aparência).
 
 ### Painel e escala de sintonia
 
@@ -112,6 +112,8 @@ Os satélites meteorológicos russos Meteor-M transmitem imagens da Terra em tem
 
 O pipeline LRPT padrão é **auto**: começa em 72k e, se após cerca de dois minutos houver SNR alto sem sincronismo, troca para 80k pelo restante da passagem. Capturas vazias podem ser apagadas pelo painel. A [agenda](#agenda) captura automaticamente toda passagem acima de uma elevação mínima e devolve o receptor ao modo anterior ao final.
 
+O painel mostra um gráfico polar (SkyPlot) com o arco da passagem e a posição ao vivo do satélite, e uma galeria das capturas agrupadas por dia, com miniaturas e visualizador (zoom, baixar e apagar).
+
 Para obter imagens, use antena externa com céu aberto. Um dipolo em V típico para 137 MHz tem braços de cerca de 53,4 cm, abertos a 120°, montados na horizontal com o eixo norte–sul (também serve uma QFH). Dentro de casa quase não sai imagem.
 
 <!-- Imagem de uma passagem Meteor capturada pela estação: a ser adicionada. -->
@@ -136,6 +138,10 @@ A aba Gráficos apresenta as séries históricas geradas pelo graphs1090: númer
 
 Frequências e pontos geográficos de interesse podem ser salvos como marcadores. Marcadores de frequência são sintonizados com um clique; marcadores de posição aparecem no mapa.
 
+### Alertas
+
+Regras na aba Config (squawk de emergência, militar, voo baixo e perto, listas de hex/matrícula/voo, navio novo, radiossonda perto ou descendo, captura de satélite com imagem). O aviso fica só no navegador: sino com contador, toast e contador no título da aba. A API Notification do sistema é opcional e exige HTTPS ou `localhost` — sem Telegram nem e-mail.
+
 ### Agenda
 
 A aba Agenda mostra quem pega o receptor nas próximas 48 horas: passagens de satélite, janelas de radiossonda e entradas suas (troca de modo ou gravação de áudio FM/airband em WAV no servidor). A prioridade é única → satélite → sonda → recorrente. Um satélite preempta uma sonda em curso e a devolve se a janela ainda estiver aberta. Os mesmos interruptores de captura automática de Meteor e de busca de sondas ficam nesta aba (e nas abas Satélites e Radiossondas há um atalho).
@@ -150,7 +156,7 @@ A interface está disponível em português (padrão), inglês, espanhol, franc�
 
 ## Requisitos
 
-- **Receptor RTL-SDR.** O modelo de referência é o [RTL-SDR Blog V4](https://www.rtl-sdr.com/v4/), vendido com antenas dipolo.
+- **Receptor RTL-SDR.** O modelo de referência é o [RTL-SDR Blog V4](https://www.rtl-sdr.com/v4/), vendido com antenas dipolo. Com um dongle, o comportamento é o de sempre (um modo por vez). Dois dongles são opcionais: defina `URUTAU_ADSB_SERIAL` e `URUTAU_SDR_SERIAL` no `.env` para manter o ADS-B no ultrafeeder o tempo todo e rodar os demais modos no segundo receptor. Dois V4 saem de fábrica com o mesmo serial `00000001` — com um plugado por vez, `rtl_eeprom -d 0 -s 00000002` e reconecte. **Não validado em hardware.**
 - **Computador:** Linux (Ubuntu, Debian, Fedora, Arch e derivados), Raspberry Pi 4 ou 5 com Raspberry Pi OS de 64 bits, ou Windows 10/11 com WSL2 (experimental).
 - **Docker** com o plugin Compose.
 - **Antena adequada ao serviço.** A antena que acompanha o receptor, em ambiente interno, atende ao FM e a aeronaves próximas. Navios, satélites e radiossondas exigem antena externa ou junto a uma janela, com visão do céu ou do mar.
@@ -198,6 +204,8 @@ Por padrão, o painel só abre no próprio computador. O instalador oferece trê
 
 Com as opções 2 ou 3, abra `http://<endereço-da-estação>:3090` em outro aparelho (por exemplo, o nome ou o IP da máquina no Tailscale). Os links para o tar1090 e para os gráficos acompanham automaticamente o endereço usado e passam pelo mesmo proxy autenticado na porta `:8089`. A porta da API (`8000`) fica só em `127.0.0.1`. Na opção 3, o Tailscale precisa estar conectado antes de o Docker iniciar. Com senha ligada, só o admin troca o modo do receptor; a API controla o Docker da máquina: libere o acesso apenas em redes de confiança.
 
+As notificações do sistema do navegador (API Notification) só existem em HTTPS ou em `localhost`. Em `http://100.x.y.z` elas não aparecem; o sino, o toast e o título da aba continuam funcionando. Para HTTPS na rede Tailscale, com o painel só em `127.0.0.1:3090`, use por exemplo `tailscale serve --bg 3090` (confira `tailscale serve --help` na sua versão).
+
 Para trocar a opção depois, execute `./install.sh` novamente ou edite `URUTAU_BIND` no `.env` e rode `docker compose up -d`.
 
 ### Senha do painel
@@ -225,10 +233,17 @@ O painel se conecta à internet apenas para obter informações que não podem s
 | Finalidade | Serviço | Dado enviado |
 |---|---|---|
 | Órbitas dos satélites | CelesTrak | número do satélite (uma vez por dia) |
-| Fundo do mapa | Esri (ArcGIS) | região do mapa exibida |
+| Fundo do mapa | Esri (ou outro provedor), pela máquina do Urutau | z/x/y do bloco, uma vez por bloco (cache em `/data/tiles`); o navegador só fala com `/api/tiles` |
+| Mapa offline (opcional) | arquivo PMTiles local em `/data/maps/` | nenhum |
 | Matrícula e tipo das aeronaves | banco de dados distribuído com o tar1090 | prefixo do código da aeronave |
 | Foto da aeronave, ao selecioná-la | planespotters.net | código e matrícula da aeronave |
-| Relatório de alcance em HTML, ao abri-lo | unpkg | requisição da biblioteca de mapas Leaflet |
+
+O relatório de alcance em HTML embute o Leaflet; não baixa biblioteca de CDN. Para um mapa offline, gere um recorte PMTiles (licença ODbL / atribuição OpenStreetMap e Protomaps) e coloque o arquivo em `/data/maps/` no volume da API:
+
+```bash
+pmtiles extract https://build.protomaps.com/<AAAAMMDD>.pmtiles regiao.pmtiles \
+  --bbox=<oeste>,<sul>,<leste>,<norte>
+```
 
 Fontes e demais recursos do painel são distribuídos com o próprio software. A localização da antena fica apenas no arquivo `.env` e no volume Docker local.
 

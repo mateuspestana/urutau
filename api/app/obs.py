@@ -119,6 +119,7 @@ def record(source: str, key: str, data: dict[str, Any], *, lat: Any = None, lon:
         alt_f = float(alt) if alt is not None else None
     except (TypeError, ValueError):
         alt_f = None
+    is_new = False
     with _lock:
         db = _db()
         row = db.execute("SELECT data, n FROM objects WHERE source=? AND key=?", (source, key)).fetchone()
@@ -129,6 +130,7 @@ def record(source: str, key: str, data: dict[str, Any], *, lat: Any = None, lon:
                 (ts, json.dumps(merged, ensure_ascii=False), source, key),
             )
         else:
+            is_new = True
             db.execute(
                 "INSERT INTO objects(source, key, first_ts, last_ts, n, data) VALUES (?,?,?,?,1,?)",
                 (source, key, ts, ts, json.dumps(clean, ensure_ascii=False)),
@@ -157,6 +159,12 @@ def record(source: str, key: str, data: dict[str, Any], *, lat: Any = None, lon:
         s["count"] += 1
         s["objects"].add(key)
         s["last_ts"] = ts
+    if source in ("ais", "sonde"):
+        try:
+            from . import alerts
+            alerts.on_obs(source, key, clean, lat=lat, lon=lon, alt=alt, is_new=is_new, now=ts)
+        except Exception:
+            pass
 
 
 def objects(source: str, since: float | None = None, limit: int = 2000) -> list[dict[str, Any]]:

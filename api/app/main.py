@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import asyncio
 import os
+import time
 from contextlib import asynccontextmanager
 from typing import Any
 
 import httpx
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse, Response
 from pydantic import BaseModel, Field
@@ -16,6 +17,7 @@ from pydantic import BaseModel, Field
 from . import (
     __version__,
     aircraftdb,
+    alerts,
     auth,
     datalink,
     decoders,
@@ -30,6 +32,7 @@ from . import (
     schedule,
     sdr,
     store,
+    tiles,
 )
 
 
@@ -38,6 +41,7 @@ async def lifespan(_app: FastAPI):
     flightlog.init()
     datalink.init()
     obs.init()
+    alerts.init()
     await decoders.start_sonde_listener()
     flightlog.log_event("api_start")
     range_study.start_background()
@@ -55,6 +59,7 @@ async def lifespan(_app: FastAPI):
     flightlog.close()
     datalink.close()
     obs.close()
+    alerts.close()
 
 
 app = FastAPI(
@@ -133,6 +138,9 @@ class ConfigIn(BaseModel):
     sat_gain: float | None = None
     sat_pipeline: str | None = None
     rec_max_gb: float | None = None
+    tiles_max_mb: float | None = None
+    adsb_serial: str | None = None
+    sdr_serial: str | None = None
 
 
 @app.get("/api/health")
@@ -445,6 +453,19 @@ async def sat_passes(refresh: bool = False) -> dict[str, Any]:
             "log": list(decoders.log["sat"]), "live": sats.live_status()}
 
 
+@app.get("/api/sat/passes/{pass_id}/track")
+async def sat_pass_track(pass_id: str) -> dict[str, Any]:
+    tr = await sats.track(pass_id)
+    if not tr:
+        raise HTTPException(404, "passagem não encontrada")
+    return tr
+
+
+@app.get("/api/sat/now")
+async def sat_now() -> dict[str, Any]:
+    return {"sats": await sats.now_positions(), "ts": time.time()}
+
+
 @app.get("/api/sat/captures")
 async def sat_captures() -> list[dict[str, Any]]:
     return await asyncio.to_thread(sats.captures)
@@ -470,6 +491,14 @@ async def sat_file(rel: str) -> Any:
     if not p:
         raise HTTPException(404, "arquivo não encontrado")
     return FileResponse(p)
+
+
+@app.get("/api/sat/thumb/{rel:path}")
+async def sat_thumb(rel: str, w: int = 480) -> Any:
+    p = await asyncio.to_thread(sats.make_thumb, rel, w)
+    if not p:
+        raise HTTPException(404, "miniatura indisponível")
+    return FileResponse(p, media_type="image/jpeg")
 
 
 # ---------- agenda unificada ----------
@@ -537,6 +566,77 @@ async def schedule_entry_delete(entry_id: str) -> dict[str, bool]:
 @app.post("/api/schedule/skip")
 async def schedule_skip(body: ScheduleSkipIn) -> dict[str, Any]:
     return schedule.add_skip(body.ref, body.date)
+
+
+class AlertsSeenIn(BaseModel):
+    ids: list[int] | None = None
+    all: bool = False
+
+
+class AlertsRulesIn(BaseModel):
+    emergency_squawk: bool | None = None
+    military: bool | None = None
+    watchlist_hex: list[str] | None = None
+    watchlist_reg: list[str] | None = None
+    watchlist_flight: list[str] | None = None
+    low_near_enabled: bool | None = None
+    low_near_km: float | None = None
+    low_near_alt_ft: float | None = None
+    new_ship: bool | None = None
+    sonde_enabled: bool | None = None
+    sonde_km: float | None = None
+    sonde_descending: bool | None = None
+    sat_ok: bool | None = None
+    silence_s: dict[str, float] | None = None
+
+
+@app.get("/api/alerts")
+async def alerts_list(after_id: int = 0, limit: int = 50, unseen: bool = False) -> dict[str, Any]:
+    items = alerts.list_alerts(after_id=after_id, limit=limit, unseen_only=unseen)
+    return {"items": items, "unseen": alerts.unseen_count()}
+
+
+@app.post("/api/alerts/seen")
+async def alerts_seen(body: AlertsSeenIn) -> dict[str, Any]:
+    n = alerts.mark_seen(body.ids, all_unseen=body.all)
+    return {"ok": True, "updated": n, "unseen": alerts.unseen_count()}
+
+
+@app.get("/api/alerts/rules")
+async def alerts_rules_get() -> dict[str, Any]:
+    return alerts.rules()
+
+
+@app.put("/api/alerts/rules")
+async def alerts_rules_put(body: AlertsRulesIn) -> dict[str, Any]:
+    patch = {k: v for k, v in body.model_dump().items() if v is not None}
+    return alerts.save_rules(patch)
+
+
+@app.get("/api/tiles/{provider}/{z}/{x}/{y}.png")
+async def get_tile(provider: str, z: int, x: int, y: int) -> Response:
+    """Bloco de mapa: serve de /data/tiles/ ou busca no provedor (whitelist) e grava."""
+    body = await tiles.fetch_and_cache(provider, z, x, y)
+    return Response(
+        content=body,
+        media_type="image/png",
+        headers={"Cache-Control": "public, max-age=86400"},
+    )
+
+
+@app.get("/api/maps")
+async def maps_list() -> dict[str, Any]:
+    """Lista arquivos PMTiles em /data/maps/*.pmtiles (camada Offline do painel)."""
+    return {"maps": tiles.list_pmtiles()}
+
+
+@app.get("/api/maps/{name}.pmtiles")
+async def maps_get(name: str, request: Request) -> Response:
+    """Serve PMTiles com Range (biblioteca pmtiles no front). Ver docstring de tiles.py."""
+    p = tiles.pmtiles_path(name)
+    if not p:
+        raise HTTPException(404, "mapa não encontrado")
+    return tiles.pmtiles_response(p, request)
 
 
 @app.get("/api/rec")

@@ -18,6 +18,7 @@ const PATHS = {
   right: 'M9 6l6 6-6 6',
   download: 'M12 4v11M7 10l5 5 5-5M5 20h14',
   radio: 'M12 11a1 1 0 1 0 0 2a1 1 0 1 0 0-2zM8.5 8.5a5 5 0 0 0 0 7M15.5 8.5a5 5 0 0 1 0 7M5.6 5.6a9 9 0 0 0 0 12.8M18.4 5.6a9 9 0 0 1 0 12.8',
+  bell: 'M6 9a6 6 0 1 1 12 0c0 3.5 1.5 5.5 2 6.5H4c.5-1 2-3 2-6.5zM10 19a2 2 0 0 0 4 0',
 } as const
 
 export type IconName = keyof typeof PATHS

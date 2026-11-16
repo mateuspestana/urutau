@@ -58,6 +58,12 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "sat_gain": 40.0,
     "sat_pipeline": "auto",  # auto | 72k | 80k
     "rec_max_gb": 2.0,  # gravações em /data/rec; apaga as mais antigas ao estourar
+    "tiles_max_mb": 512.0,  # cache de blocos de mapa em /data/tiles; descarte do mais antigo
+    # dois dongles: vazios = comportamento de um só; o .env (URUTAU_*_SERIAL) é o padrão
+    "adsb_serial": "",
+    "sdr_serial": "",
+    # alertas só no navegador (ver api/app/alerts.py); sem Telegram/e-mail
+    "alerts": {},
 }
 
 

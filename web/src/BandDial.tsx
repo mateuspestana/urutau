@@ -203,6 +203,12 @@ export function BandDial({ status, spectrum, onPick, readout }: Props) {
               </g>
             )
           })}
+          {status?.dual && x(1090) != null ? (
+            <g className="needle secondary" style={{ transform: `translateX(${x(1090)}px)` }}>
+              <line x1={0} x2={0} y1={Y.rail - 10} y2={Y.rail + 14} />
+              <title>ADS-B 1090 MHz</title>
+            </g>
+          ) : null}
           <g className={`needle${parked ? ' parked' : ''}`} style={{ transform: `translateX(${needleX}px)` }}>
             <line x1={0} x2={0} y1={Y.rail - 14} y2={Y.rail + 18} />
           </g>

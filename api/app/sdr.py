@@ -4,6 +4,9 @@
 Toda troca de modo: `stop_proc()` (mata o grupo de processos e para a sonda) → `drain_audio()` →
 ultrafeeder ligado/desligado → inicia o novo modo. Os processos nascem em sessão própria
 (`start_new_session`), então um pipeline em shell (`rtl_fm | multimon-ng`) morre inteiro.
+
+Com dois dongles (`URUTAU_ADSB_SERIAL` ≠ `URUTAU_SDR_SERIAL`), o ultrafeeder fica sempre ligado no
+dongle de ADS-B e a API só mexe no de decodificadores.
 """
 from __future__ import annotations
 
@@ -23,7 +26,7 @@ from . import datalink, decoders
 
 MODES = ("idle", "adsb", "fm", "airband", "spectrum", "acars", "vdl2", "ais", "ism", "aprs", "sonde", "sat")
 DATALINK = ("acars", "vdl2")
-# modos em que a API (ou a sonda) segura o USB: o ultrafeeder tem de ficar parado
+# modos em que a API (ou a sonda) segura o USB: o ultrafeeder tem de ficar parado (exceto dual)
 HOLDS_DONGLE = ("fm", "airband", "spectrum", "acars", "vdl2", "ais", "ism", "aprs", "sonde", "sat")
 
 SONDE_IMAGE = "ghcr.io/projecthorus/radiosonde_auto_rx:latest"
@@ -49,6 +52,63 @@ class Runtime:
 state = Runtime()
 
 
+def _cfg_serial(key: str, env: str) -> str:
+    """Serial do config.json, se houver; senão a variável de ambiente. Ambos vazios = dongle único."""
+    try:
+        from . import store
+        v = store.load_config().get(key)
+        if v is not None and str(v).strip():
+            return str(v).strip()
+    except Exception:
+        pass
+    return os.environ.get(env, "").strip()
+
+
+def adsb_serial() -> str:
+    return _cfg_serial("adsb_serial", "URUTAU_ADSB_SERIAL")
+
+
+def sdr_serial() -> str:
+    return _cfg_serial("sdr_serial", "URUTAU_SDR_SERIAL")
+
+
+def dual() -> bool:
+    """Dois dongles distintos: ADS-B permanente + decodificadores no outro."""
+    a, s = adsb_serial(), sdr_serial()
+    return bool(a and s and a != s)
+
+
+def device_args(tool: str) -> list[str]:
+    """Argumentos de seleção do dongle de decodificadores.
+
+    Sintaxe confirmada no container (vazio / sem serial = índice 0, comportamento atual):
+    - rtl_fm / rtl_power: ``-d SERIAL`` (librtlsdr aceita índice ou serial)
+    - rtl_433: ``-d :SERIAL`` (dois args; o valor começa com ``:``)
+    - AIS-catcher: ``-d:0`` = índice; ``-d SERIAL`` = serial (``-d:0`` com serial literal
+      "0" seria índice — por isso o formulário com espaço quando há serial)
+    - acarsdec: ``-r SERIAL`` (número ou S/N)
+    - dumpvdl2: ``--rtlsdr SERIAL``
+    - satdump: ``--source_id SERIAL``
+    - sonde: um único elemento, o valor de ``device_idx`` na config do auto_rx
+    """
+    serial = sdr_serial()
+    if tool in ("rtl_fm", "rtl_power"):
+        return ["-d", serial] if serial else []
+    if tool == "rtl_433":
+        return ["-d", f":{serial}"] if serial else ["-d", "0"]
+    if tool == "ais":
+        return ["-d", serial] if serial else ["-d:0"]
+    if tool == "acarsdec":
+        return ["-r", serial or "0"]
+    if tool == "dumpvdl2":
+        return ["--rtlsdr", serial or "0"]
+    if tool == "satdump":
+        return ["--source_id", serial] if serial else []
+    if tool == "sonde":
+        return [serial or "0"]
+    raise ValueError(f"ferramenta desconhecida para device_args: {tool}")
+
+
 def _docker() -> docker.DockerClient:
     return docker.from_env()
 
@@ -62,6 +122,9 @@ def ultrafeeder_status() -> dict[str, Any]:
 
 
 async def set_ultrafeeder(running: bool) -> None:
+    # em dual o ADS-B nunca cede o dongle: ignorar pedido de parar
+    if dual() and not running:
+        return
     try:
         c = _docker().containers.get(UF_NAME)
     except Exception as e:
@@ -203,9 +266,10 @@ async def _release_for(mode: str) -> None:
 async def start_fm(freq_mhz: float, gain: float, am: bool = False) -> None:
     await _release_for("airband" if am else "fm")
     decoders.reset_rds()
+    dev = device_args("rtl_fm")
     if am:
         # airband AM → 12 kHz
-        proc = await _spawn("rtl_fm", "-f", f"{freq_mhz}M", "-M", "am", "-s", "12k", "-g", str(gain), "-")
+        proc = await _spawn("rtl_fm", *dev, "-f", f"{freq_mhz}M", "-M", "am", "-s", "12k", "-g", str(gain), "-")
         state.proc = proc
         _begin("airband", {"freq_mhz": freq_mhz, "gain": gain, "sample_rate": 12000, "am": True})
         asyncio.create_task(_pump_audio(proc))
@@ -216,7 +280,7 @@ async def start_fm(freq_mhz: float, gain: float, am: bool = False) -> None:
     # WBFM: o rtl_fm entrega o MPX cru a 171 kHz (com piloto e subportadora RDS em 57 kHz).
     # A API divide: redsea decodifica o RDS; o sox filtra 15 kHz, aplica de-ênfase de 75 µs
     # (padrão das Américas; polo único em 2122 Hz) e reamostra para 48 kHz de áudio.
-    rtl = await _spawn("rtl_fm", "-M", "fm", "-l", "0", "-A", "std", "-p", "0", "-s", "171k",
+    rtl = await _spawn("rtl_fm", *dev, "-M", "fm", "-l", "0", "-A", "std", "-p", "0", "-s", "171k",
                        "-g", str(gain), "-F", "9", "-f", f"{freq_mhz}M", "-")
     sox = await _spawn("sox", "-t", "raw", "-r", "171000", "-e", "signed", "-b", "16", "-c", "1", "-",
                        "-t", "raw", "-r", "48000", "-e", "signed", "-b", "16", "-c", "1", "-",
@@ -301,9 +365,9 @@ async def start_datalink(source: str, freqs: list[float], gain: float) -> str:
     if err:
         return err
     if source == "acars":
-        cmd = ["acarsdec", "-o", "4", "-g", str(gain), "-r", "0", *[f"{f:.3f}" for f in freqs]]
+        cmd = ["acarsdec", "-o", "4", "-g", str(gain), *device_args("acarsdec"), *[f"{f:.3f}" for f in freqs]]
     else:
-        cmd = ["dumpvdl2", "--output", "decoded:json:file:path=-", "--rtlsdr", "0", "--gain", str(gain),
+        cmd = ["dumpvdl2", "--output", "decoded:json:file:path=-", *device_args("dumpvdl2"), "--gain", str(gain),
                *[f"{f:.3f}M" for f in freqs]]
 
     def on_line(line: str) -> None:
@@ -348,6 +412,8 @@ async def start_sonde(lat: float, lon: float, gain: float, min_mhz: float, max_m
             pass
         # a config do auto_rx é gerada a partir do exemplo da própria imagem.
         # SondeHub (upload público da posição da estação) fica DESLIGADO: nada sai desta máquina.
+        # device_idx aceita índice ou serial; o exemplo traz [sdr_2] — apagamos para não disputar o ADS-B.
+        idx = device_args("sonde")[0]
         sets = {
             "station_lat": lat, "station_lon": lon, "station_alt": 20,
             "sondehub_enabled": "False", "uploader_callsign": "LOCAL",
@@ -356,7 +422,12 @@ async def start_sonde(lat: float, lon: float, gain: float, min_mhz: float, max_m
             "payload_summary_port": 55673, "web_control": "False",
         }
         sed = " ".join(f"-e 's|^{k} = .*|{k} = {v}|'" for k, v in sets.items())
-        script = f"cp station.cfg.example station.cfg && sed -i {sed} station.cfg && exec python3 auto_rx.py"
+        script = (
+            f"cp station.cfg.example station.cfg && sed -i {sed} station.cfg && "
+            f"sed -i '0,/^device_idx = .*/s//device_idx = {idx}/' station.cfg && "
+            f"sed -i '/^\\[sdr_2\\]/,/^##############################/{{ /^##############################/!d; }}' station.cfg && "
+            f"exec python3 auto_rx.py"
+        )
         cli.containers.run(
             SONDE_IMAGE,
             name=SONDE_NAME,
@@ -431,7 +502,8 @@ async def run_spectrum(start_mhz: float, end_mhz: float, bin_khz: float, gain: f
     out = f"/tmp/spectrum_{int(time.time())}.csv"
     bin_hz = int(bin_khz * 1000)
     proc = await asyncio.create_subprocess_exec(
-        "rtl_power", "-f", f"{start_mhz}M:{end_mhz}M:{bin_hz}", "-g", str(gain), "-i", "1", "-e", f"{seconds}s", out,
+        "rtl_power", *device_args("rtl_power"),
+        "-f", f"{start_mhz}M:{end_mhz}M:{bin_hz}", "-g", str(gain), "-i", "1", "-e", f"{seconds}s", out,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
@@ -487,11 +559,12 @@ async def run_spectrum(start_mhz: float, end_mhz: float, bin_khz: float, gain: f
 async def guard_loop() -> None:
     """Enquanto a API (ou a sonda) segura o dongle, o ultrafeeder tem de ficar parado.
     Um `docker compose up` de qualquer serviço o religa pela cadeia de depends_on, e aí o readsb
-    disputa o USB. Este laço o derruba de novo. Também percebe a sonda morrendo sozinha."""
+    disputa o USB. Este laço o derruba de novo. Em dual não age (cada um no seu dongle).
+    Também percebe a sonda morrendo sozinha."""
     while True:
         await asyncio.sleep(5)
         try:
-            if state.mode in HOLDS_DONGLE:
+            if state.mode in HOLDS_DONGLE and not dual():
                 uf = await asyncio.to_thread(ultrafeeder_status)
                 if uf.get("running"):
                     datalink.decoder_log.append("api: ultrafeeder religado por fora; parando para liberar o dongle")
@@ -510,6 +583,7 @@ async def guard_loop() -> None:
 
 
 def status() -> dict[str, Any]:
+    is_dual = dual()
     return {
         "mode": state.mode,
         "params": state.params,
@@ -519,5 +593,12 @@ def status() -> dict[str, Any]:
         "ultrafeeder": ultrafeeder_status(),
         "spectrum_meta": state.spectrum_meta,
         "has_spectrum": bool(state.spectrum),
-        "dongle_hint": "RTL-SDR V4 via USB (um modo por vez)",
+        "dual": is_dual,
+        "adsb_serial": adsb_serial(),
+        "sdr_serial": sdr_serial(),
+        "dongle_hint": (
+            "Dois dongles: ADS-B permanente + decodificadores no outro"
+            if is_dual
+            else "RTL-SDR V4 via USB (um modo por vez)"
+        ),
     }

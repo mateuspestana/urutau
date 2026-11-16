@@ -25,6 +25,7 @@ import { Ism } from './Ism'
 import { Sats } from './Sats'
 import { Health } from './Health'
 import { Schedule } from './Schedule'
+import { AlertsBell, AlertsConfig } from './AlertsBell'
 import { RdsCard } from './RdsCard'
 import { useStored } from './useStored'
 import { SpectrumChart } from './SpectrumChart'
@@ -143,6 +144,7 @@ export default function App() {
   const [healthCritical, setHealthCritical] = useState(false)
   const [recordings, setRecordings] = useState<Recording[]>([])
   const [recMaxGb, setRecMaxGb] = useState(2)
+  const [dongleSerials, setDongleSerials] = useState<string[]>([])
   /** a config só preenche o formulário na 1ª carga (antes sobrescrevia o que o usuário digitava a cada 2,5 s) */
   const cfgLoaded = useRef(false)
   const refresh = useCallback(async () => {
@@ -207,6 +209,14 @@ export default function App() {
     window.addEventListener('hashchange', onHash)
     return () => window.removeEventListener('hashchange', onHash)
   }, [])
+
+  useEffect(() => {
+    if (tab !== 'config') return
+    api
+      .diagnostics()
+      .then((d) => setDongleSerials(d.dongles.map((x) => x.serial).filter(Boolean)))
+      .catch(() => {})
+  }, [tab])
 
   const goto = useCallback((target: string) => {
     // "decod" abre a última subaba usada
@@ -502,6 +512,7 @@ export default function App() {
           </a>
         </nav>
         <div className="header-tools">
+          <AlertsBell flash={flash} />
           <div className="status-pill">
             <span className={`dot${holding ? ' on' : ''}`} />
             {MODE_NAME[status?.mode || ''] ? t(MODE_NAME[status?.mode || '']) : status?.mode || '…'}
@@ -555,7 +566,11 @@ export default function App() {
           readout={{ mode: MODE_NAME[status?.mode || ''] ? t(MODE_NAME[status?.mode || '']) : t('Conectando…'), sub: readoutSub, on: holding }}
         />
         <div className="modes">
-          <button disabled={locked} className={status?.mode === 'adsb' ? 'on' : ''} onClick={() => runMode('adsb')}>
+          <button
+            disabled={locked}
+            className={status?.mode === 'adsb' || (status?.dual && status?.ultrafeeder?.running) ? 'on' : ''}
+            onClick={() => runMode('adsb')}
+          >
             ADS-B
           </button>
           <button
@@ -1105,6 +1120,55 @@ export default function App() {
                 onChange={(e) => setConfig((c) => (c ? { ...c, tar1090_public: e.target.value } : c))}
               />
             </label>
+            {(status?.dual || (config?.adsb_serial && config?.sdr_serial) || dongleSerials.length >= 2) && (
+              <>
+                <label className="config-wide">
+                  {t('Serial do dongle ADS-B')}
+                  <select
+                    value={config?.adsb_serial || status?.adsb_serial || ''}
+                    onChange={(e) => setConfig((c) => (c ? { ...c, adsb_serial: e.target.value } : c))}
+                  >
+                    <option value="">{t('usar .env / padrão')}</option>
+                    {dongleSerials.map((s) => (
+                      <option key={`a-${s}`} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                    {(config?.adsb_serial || status?.adsb_serial) &&
+                    !dongleSerials.includes(config?.adsb_serial || status?.adsb_serial || '') ? (
+                      <option value={config?.adsb_serial || status?.adsb_serial || ''}>
+                        {config?.adsb_serial || status?.adsb_serial}
+                      </option>
+                    ) : null}
+                  </select>
+                </label>
+                <label className="config-wide">
+                  {t('Serial do dongle de decodificadores')}
+                  <select
+                    value={config?.sdr_serial || status?.sdr_serial || ''}
+                    onChange={(e) => setConfig((c) => (c ? { ...c, sdr_serial: e.target.value } : c))}
+                  >
+                    <option value="">{t('usar .env / padrão')}</option>
+                    {dongleSerials.map((s) => (
+                      <option key={`s-${s}`} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                    {(config?.sdr_serial || status?.sdr_serial) &&
+                    !dongleSerials.includes(config?.sdr_serial || status?.sdr_serial || '') ? (
+                      <option value={config?.sdr_serial || status?.sdr_serial || ''}>
+                        {config?.sdr_serial || status?.sdr_serial}
+                      </option>
+                    ) : null}
+                  </select>
+                </label>
+                <p className="hint config-wide">
+                  {t(
+                    'Dois dongles: o ADS-B fica no ultrafeeder o tempo todo. Mudar o serial do ADS-B também exige o mesmo valor em URUTAU_ADSB_SERIAL no .env e docker compose up -d. Não validado em hardware.',
+                  )}
+                </p>
+              </>
+            )}
             <p className="hint">
               {t('Padrões salvos junto: FM {a} MHz / {b} dB · Airband {c} MHz / {d} dB · Espectro {e}–{f} MHz', {
                 a: fmtNum(fmFreq, 1),
@@ -1122,6 +1186,8 @@ export default function App() {
           </form>
           <p className="hint">{status?.dongle_hint ? tApi(status.dongle_hint) : ''}</p>
         </section>
+
+        <AlertsConfig flash={flash} disabled={noControl} />
 
         <section id="markers" className="panel">
           <div className="panel-head">

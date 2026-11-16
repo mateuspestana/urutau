@@ -9,6 +9,9 @@ export type StationStatus = {
   spectrum_meta: Record<string, unknown>
   has_spectrum: boolean
   dongle_hint: string
+  dual?: boolean
+  adsb_serial?: string
+  sdr_serial?: string
   config?: StationConfig
 }
 
@@ -44,6 +47,37 @@ export type StationConfig = {
   sat_gain?: number
   sat_pipeline?: 'auto' | '72k' | '80k'
   rec_max_gb?: number
+  tiles_max_mb?: number
+  adsb_serial?: string
+  sdr_serial?: string
+  alerts?: AlertRules
+}
+
+export type AlertItem = {
+  id: number
+  ts: number
+  kind: string
+  key: string
+  title: string
+  detail: Record<string, unknown>
+  seen: boolean
+}
+
+export type AlertRules = {
+  emergency_squawk: boolean
+  military: boolean
+  watchlist_hex: string[]
+  watchlist_reg: string[]
+  watchlist_flight: string[]
+  low_near_enabled: boolean
+  low_near_km: number
+  low_near_alt_ft: number
+  new_ship: boolean
+  sonde_enabled: boolean
+  sonde_km: number
+  sonde_descending: boolean
+  sat_ok: boolean
+  silence_s?: Record<string, number>
 }
 
 export type RangePoint = {
@@ -221,6 +255,7 @@ export type ObsStats = {
 }
 
 export type SatPass = {
+  id: string
   sat: string
   name: string
   freq: number
@@ -231,6 +266,28 @@ export type SatPass = {
   max_el: number
   aos_az: number
   los_az: number
+}
+
+export type SatTrackPoint = { t: number; az: number; el: number }
+
+export type SatTrack = {
+  id: string
+  sat: string
+  name: string
+  aos: number
+  los: number
+  tca?: number
+  max_el?: number
+  step_s: number
+  points: SatTrackPoint[]
+}
+
+export type SatNow = {
+  sat: string
+  name: string
+  az: number
+  el: number
+  above: boolean
 }
 
 export type SatInfo = { id: string; name: string; norad: number; freq: number; kind: string; note?: string }
@@ -538,10 +595,14 @@ export const api = {
     j<{ passes: SatPass[]; sats: SatInfo[]; agenda: Agenda; log: string[]; live: SatLive | null }>(
       `/api/sat/passes${refresh ? '?refresh=true' : ''}`,
     ),
+  satTrack: (id: string) => j<SatTrack>(`/api/sat/passes/${encodeURIComponent(id)}/track`),
+  satNow: () => j<{ sats: SatNow[]; ts: number }>('/api/sat/now'),
   satCaptures: () => j<SatCapture[]>('/api/sat/captures'),
   satDeleteCapture: (dir: string) =>
     j<{ ok: boolean }>(`/api/sat/captures/${encodeURIComponent(dir)}`, { method: 'DELETE' }),
   satPruneEmpty: () => j<{ ok: boolean; removed: number }>('/api/sat/captures/prune-empty', { method: 'POST' }),
+  satThumbUrl: (rel: string, w = 480) => `/api/sat/thumb/${rel.split('/').map(encodeURIComponent).join('/')}?w=${w}`,
+  satFileUrl: (rel: string) => `/api/sat/file/${rel.split('/').map(encodeURIComponent).join('/')}`,
   trail: (hex: string) => j<{ sighting_id: number | null; points: TrailPt[] }>(`/api/adsb/trail/${hex}`),
   diagnostics: () => j<Diagnostics>('/api/diagnostics'),
   diagnosticsNoise: (body: { antenna_label?: string; gain?: number }) =>
@@ -573,6 +634,16 @@ export const api = {
     j<{ recordings: Recording[]; status: RecStatus; rec_max_gb: number }>('/api/rec'),
   recDelete: (name: string) =>
     j<{ ok: boolean }>(`/api/rec/${encodeURIComponent(name)}`, { method: 'DELETE' }),
+  alerts: (f?: { after_id?: number; limit?: number; unseen?: boolean }) =>
+    j<{ items: AlertItem[]; unseen: number }>(`/api/alerts${logQuery(f || {})}`),
+  alertsSeen: (body: { ids?: number[]; all?: boolean }) =>
+    j<{ ok: boolean; updated: number; unseen: number }>('/api/alerts/seen', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  alertsRules: () => j<AlertRules>('/api/alerts/rules'),
+  saveAlertsRules: (body: Partial<AlertRules>) =>
+    j<AlertRules>('/api/alerts/rules', { method: 'PUT', body: JSON.stringify(body) }),
 }
 
 export type Aircraft = {

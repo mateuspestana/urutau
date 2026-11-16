@@ -77,3 +77,60 @@ def test_troca_para_outro_modo_nao_e_desfeita(monkeypatch):
     assert calls == []
     assert not sats.job
     assert "sat" in sats.suppressed
+
+
+def test_pass_id_estavel():
+    assert sats.pass_id("meteor-m2-3", 1731400000.7) == "meteor-m2-3-1731400000"
+    assert sats.parse_pass_id("meteor-m2-3-1731400000") == ("meteor-m2-3", 1731400000)
+    assert sats.parse_pass_id("iss-99") == ("iss", 99)
+    assert sats.parse_pass_id("nope-1") is None
+    assert sats.parse_pass_id("meteor-m2-3") is None
+
+
+def test_track_amostras_ordem_e_passo():
+    items = sats._compute(TLE, -15.78, -47.93, 48.0, 0.0, start=START)
+    meteor = next(p for p in items if p["sat"] == "meteor-m2-3")
+    lines = TLE["meteor-m2-3"]
+    pts = sats._sample_track(
+        "meteor-m2-3", meteor["aos"], meteor["los"], -15.78, -47.93, lines, step=10.0,
+    )
+    assert len(pts) >= 2
+    expected = int((meteor["los"] - meteor["aos"]) / 10.0) + 1
+    # pode haver +1 se o último ponto de LOS for anexado
+    assert expected <= len(pts) <= expected + 1
+    times = [p["t"] for p in pts]
+    assert times == sorted(times)
+    assert abs(times[0] - meteor["aos"]) < 1.0
+    assert times[-1] <= meteor["los"] + 1.0
+    for i in range(1, len(pts) - 1):
+        assert abs(pts[i]["t"] - pts[i - 1]["t"] - 10.0) < 0.2
+    for p in pts:
+        assert 0 <= p["az"] <= 360
+        assert -5 <= p["el"] <= 90
+    assert meteor["id"] == sats.pass_id(meteor["sat"], meteor["aos"])
+
+
+def test_thumb_path_safety(tmp_path, monkeypatch):
+    sat = tmp_path / "sat"
+    sat.mkdir()
+    monkeypatch.setattr(sats, "SAT_DIR", sat)
+    monkeypatch.setattr(sats, "THUMB_DIR", sat / ".thumbs")
+    # traversal
+    assert sats.make_thumb("../etc/passwd") is None
+    assert sats.make_thumb("../../secret.png") is None
+    # arquivo inexistente
+    assert sats.make_thumb("missing.png") is None
+    # PNG válido → miniatura no cache
+    try:
+        from PIL import Image
+    except ImportError:
+        return  # ambiente sem Pillow: só a segurança de caminho acima conta
+    src = sat / "cap" / "rgb_composite.png"
+    src.parent.mkdir()
+    Image.new("RGB", (200, 120), (40, 80, 120)).save(src)
+    out = sats.make_thumb("cap/rgb_composite.png", w=64)
+    assert out is not None
+    assert out.is_file()
+    assert sat / ".thumbs" in out.parents or out.parent == sat / ".thumbs"
+    again = sats.make_thumb("cap/rgb_composite.png", w=64)
+    assert again == out

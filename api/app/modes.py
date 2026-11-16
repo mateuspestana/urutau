@@ -72,13 +72,13 @@ async def apply(mode: str, freq: float | None = None, gain: float | None = None,
     elif mode == "ais":
         g = gain if gain is not None else cfg["ais_gain"]
         await sdr.start_lines(
-            "ais", ["AIS-catcher", "-d:0", "-gr", "TUNER", str(g), "RTLAGC", "off", "-o", "5"],
+            "ais", ["AIS-catcher", *sdr.device_args("ais"), "-gr", "TUNER", str(g), "RTLAGC", "off", "-o", "5"],
             decoders.ais_line, {"freqs": [161.975, 162.025], "gain": g}, decoders.log["ais"], "AIS-catcher")
         store.save_config({"ais_gain": float(g)})
     elif mode == "ism":
         fl = sorted({round(float(x), 3) for x in (freqs or cfg["ism_freqs"])})
         g = gain if gain is not None else cfg["ism_gain"]
-        cmd = ["rtl_433", "-d", "0", "-g", str(g), "-F", "json", "-M", "time:unix", "-M", "level"]
+        cmd = ["rtl_433", *sdr.device_args("rtl_433"), "-g", str(g), "-F", "json", "-M", "time:unix", "-M", "level"]
         for x in fl:
             cmd += ["-f", f"{x}M"]
         if len(fl) > 1:
@@ -89,7 +89,9 @@ async def apply(mode: str, freq: float | None = None, gain: float | None = None,
         f = float(freq if freq is not None else cfg["aprs_freq_mhz"])
         g = gain if gain is not None else cfg["aprs_gain"]
         # NBFM a 22,05 kHz → multimon-ng AFSK1200; -A imprime cada pacote como "APRS: CALL>DEST,PATH:..."
-        cmd = f"rtl_fm -f {f}M -M fm -s 22050 -g {float(g)} -E dc - | multimon-ng -t raw -a AFSK1200 -A -"
+        dev = " ".join(sdr.device_args("rtl_fm"))
+        rtl = f"rtl_fm {dev} " if dev else "rtl_fm "
+        cmd = f"{rtl}-f {f}M -M fm -s 22050 -g {float(g)} -E dc - | multimon-ng -t raw -a AFSK1200 -A -"
         await sdr.start_lines("aprs", f"stdbuf -oL sh -c '{cmd}'", decoders.aprs_line,
                               {"freq_mhz": f, "gain": g}, decoders.log["aprs"], "rtl_fm|multimon-ng")
         store.save_config({"aprs_freq_mhz": f, "aprs_gain": float(g)})

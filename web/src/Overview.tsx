@@ -52,7 +52,7 @@ export function Overview({ status, range, adsb, audio, goto, visible }: Props) {
       <section className="panel ov-mode">
         <div className="panel-head">
           <h2>{t('Dongle')}</h2>
-          <p>{t('RTL-SDR · um modo por vez')}</p>
+          <p>{status?.dual ? t('Dois dongles · ADS-B contínuo') : t('RTL-SDR · um modo por vez')}</p>
         </div>
         <dl className="ov-dl">
           <dt>ultrafeeder</dt>
@@ -98,7 +98,7 @@ export function Overview({ status, range, adsb, audio, goto, visible }: Props) {
             <b>{adsb?.maxKm ? `${fmtNum(adsb.maxKm)} km` : '—'}</b>
           </div>
         </div>
-        {!uf?.running && <p className="hint">{t('ADS-B parado: o dongle está em outro modo.')}</p>}
+        {!uf?.running && !status?.dual && <p className="hint">{t('ADS-B parado: o dongle está em outro modo.')}</p>}
       </section>
 
       <section

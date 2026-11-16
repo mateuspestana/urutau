@@ -1,24 +1,35 @@
 # Autor: Matheus C. Pestana
-"""Gera HTML autônomo do estudo de alcance."""
+"""Gera HTML autônomo do estudo de alcance (Leaflet embutido de app/vendor/)."""
 from __future__ import annotations
 
 import json
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
+
+_VENDOR = Path(__file__).resolve().parent / "vendor"
+
+
+def _vendor_text(name: str) -> str:
+    p = _VENDOR / name
+    if not p.is_file():
+        return f"/* {name} ausente em app/vendor/ */"
+    return p.read_text(encoding="utf-8")
 
 
 def build_range_html(data: dict[str, Any]) -> str:
     payload = json.dumps(data, ensure_ascii=False)
     generated = datetime.now(UTC).astimezone().strftime("%Y-%m-%d %H:%M:%S %Z")
     rx = data.get("receiver") or {}
+    leaflet_css = _vendor_text("leaflet.css")
+    leaflet_js = _vendor_text("leaflet.js")
     return f"""<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Urutau · estudo de alcance ADS-B</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>{leaflet_css}</style>
   <style>
     :root {{
       --bg:#0b0e12; --panel:#12161c; --line:#243041; --text:#e7eef7;
@@ -72,7 +83,8 @@ def build_range_html(data: dict[str, Any]) -> str:
     <span><i class="sw" style="background:var(--mint)"></i>1ª visão / contorno</span>
     <span><i class="sw" style="background:var(--red)"></i>Última visão</span>
   </div>
-  <footer>Urutau · estação RTL-SDR · dados embutidos neste arquivo</footer>
+  <footer>Urutau · estação RTL-SDR · dados embutidos neste arquivo · Leaflet BSD-2-Clause</footer>
+  <script>{leaflet_js}</script>
   <script>
     const DATA = {payload};
     const rx = DATA.receiver || {{ lat: 0, lon: 0 }};
@@ -88,6 +100,7 @@ def build_range_html(data: dict[str, Any]) -> str:
     ].map(([k,v]) => `<div class="card">${{k}}<b>${{v ?? '—'}}</b></div>`).join('');
 
     const map = L.map('map').setView([rx.lat, rx.lon], 10);
+    // relatório autônomo: fundo OSM Humanitarian (rede do leitor); o painel usa /api/tiles/
     L.tileLayer('https://{{s}}.tile.openstreetmap.fr/hot/{{z}}/{{x}}/{{y}}.png', {{
       attribution: '&copy; OSM · Humanitarian',
       maxZoom: 19,

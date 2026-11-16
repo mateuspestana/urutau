@@ -32,7 +32,8 @@ services:
       - READSB_LON=${READSB_LON:-}
       - READSB_DEVICE_TYPE=rtlsdr
       - READSB_GAIN=autogain
-      - READSB_RTLSDR_DEVICE=0
+      # índice 0 ou serial do dongle de ADS-B (URUTAU_ADSB_SERIAL); vazio → 0
+      - READSB_RTLSDR_DEVICE=${URUTAU_ADSB_SERIAL:-0}
       - READSB_ENABLE_BIASTEE=false
       - READSB_RX_LOCATION_ACCURACY=2
       - READSB_MAX_RANGE=300
@@ -68,6 +69,9 @@ services:
       - URUTAU_BIND=${URUTAU_BIND:-127.0.0.1}
       - URUTAU_PASSWORD=${URUTAU_PASSWORD:-}
       - URUTAU_VIEW_PASSWORD=${URUTAU_VIEW_PASSWORD:-}
+      # dois dongles: serial do ADS-B e o dos decodificadores (vazios = um dongle)
+      - URUTAU_ADSB_SERIAL=${URUTAU_ADSB_SERIAL:-}
+      - URUTAU_SDR_SERIAL=${URUTAU_SDR_SERIAL:-}
       - ULTRAFEEDER_CONTAINER=urutau-ultrafeeder
       - SONDE_CONTAINER=urutau-radiosonde
       # contato (URL ou e-mail) exigido pelo planespotters no User-Agent; vazio = sem fotos pelo servidor
