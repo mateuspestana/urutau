@@ -14,7 +14,9 @@ WORKDIR /src
 RUN git clone --depth 1 -b v2.2.0 https://github.com/szpajder/libacars.git \
     && cmake -S libacars -B libacars/build -DCMAKE_BUILD_TYPE=Release \
     && cmake --build libacars/build -j"$(nproc)" && cmake --install libacars/build && ldconfig
+# acarsdec fixa -march=native no CMake: sem isso o binário só roda na CPU de quem compilou (SIGILL, código -4)
 RUN git clone --depth 1 -b acarsdec-3.7 https://github.com/TLeconte/acarsdec.git \
+    && sed -i "s/ -march=native//" acarsdec/CMakeLists.txt \
     && cmake -S acarsdec -B acarsdec/build -DCMAKE_BUILD_TYPE=Release -Drtl=ON \
     && cmake --build acarsdec/build -j"$(nproc)" && install -m755 acarsdec/build/acarsdec /usr/local/bin/
 RUN git clone --depth 1 -b v2.4.0 https://github.com/szpajder/dumpvdl2.git \

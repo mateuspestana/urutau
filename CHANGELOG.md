@@ -2,6 +2,12 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); as versões seguem o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [0.5.2] - 2026-11-16
+
+### Corrigido
+
+- ACARS falhava com o código -4 em alguns computadores: o `acarsdec` era compilado com as instruções da máquina de build (`-march=native`) e encerrava com "Illegal instruction" em CPUs diferentes. Agora ele é compilado para a arquitetura genérica.
+
 ## [0.5.1] - 2026-11-16
 
 ### Corrigido
@@ -103,6 +109,7 @@ Primeira versão pública.
 - Sem envio de dados a redes de rastreamento nem ao SondeHub; fontes distribuídas com o software.
 - A localização da antena é opcional e fica apenas no `.env` e no volume local.
 
+[0.5.2]: https://github.com/mateuspestana/urutau/releases/tag/v0.5.2
 [0.5.1]: https://github.com/mateuspestana/urutau/releases/tag/v0.5.1
 [0.5.0]: https://github.com/mateuspestana/urutau/releases/tag/v0.5.0
 [0.4.0]: https://github.com/mateuspestana/urutau/releases/tag/v0.4.0
