@@ -77,6 +77,12 @@ msg pw_ok "autenticação do painel ligada" "panel authentication enabled" "aute
 msg pw_off "BIND local: autenticação desligada (defina URUTAU_PASSWORD no .env se quiser)" "local BIND: authentication off (set URUTAU_PASSWORD in .env if you want it)" "BIND local: autenticación desactivada (define URUTAU_PASSWORD en .env si la quieres)" "BIND local : authentification désactivée (définissez URUTAU_PASSWORD dans .env si besoin)" "локальный BIND: аутентификация выключена (задайте URUTAU_PASSWORD в .env при необходимости)"
 msg ts_none "Tailscale não encontrado ou desconectado (tailscale ip -4 vazio); usando só esta máquina." "Tailscale not found or not connected (tailscale ip -4 is empty); using this machine only." "Tailscale no encontrado o desconectado (tailscale ip -4 vacío); usando solo esta máquina." "Tailscale introuvable ou déconnecté (tailscale ip -4 vide) ; accès limité à cette machine." "Tailscale не найден или не подключён (tailscale ip -4 пусто); доступ только с этого компьютера."
 msg ts_note "o Tailscale precisa estar conectado antes do Docker subir, senão os containers não abrem a porta nesse IP." "Tailscale must be connected before Docker starts, otherwise the containers cannot bind to that IP." "Tailscale debe estar conectado antes de que arranque Docker; si no, los contenedores no pueden abrir el puerto en esa IP." "Tailscale doit être connecté avant le démarrage de Docker, sinon les conteneurs ne peuvent pas ouvrir le port sur cette IP." "Tailscale должен подключаться раньше запуска Docker, иначе контейнеры не смогут открыть порт на этом IP."
+msg ufw_ts "ufw-docker está ativo e libera só redes locais (10/8, 172.16/12, 192.168/16); a faixa Tailscale 100.64.0.0/10 fica bloqueada — o painel abre na LAN e falha por Tailscale." "ufw-docker is active and only allows local networks (10/8, 172.16/12, 192.168/16); the Tailscale range 100.64.0.0/10 stays blocked — the panel works on the LAN and fails over Tailscale." "ufw-docker está activo y solo libera redes locales (10/8, 172.16/12, 192.168/16); el rango Tailscale 100.64.0.0/10 queda bloqueado — el panel abre en la LAN y falla por Tailscale." "ufw-docker est actif et n’autorise que les réseaux locaux (10/8, 172.16/12, 192.168/16) ; la plage Tailscale 100.64.0.0/10 reste bloquée — le panneau marche en LAN et échoue via Tailscale." "ufw-docker активен и пускает только локальные сети (10/8, 172.16/12, 192.168/16); диапазон Tailscale 100.64.0.0/10 блокируется — панель открывается в LAN и недоступна через Tailscale."
+msg ufw_ts_ask "Liberar 100.64.0.0/10 no DOCKER-USER? (sudo)" "Allow 100.64.0.0/10 in DOCKER-USER? (sudo)" "¿Liberar 100.64.0.0/10 en DOCKER-USER? (sudo)" "Autoriser 100.64.0.0/10 dans DOCKER-USER ? (sudo)" "Разрешить 100.64.0.0/10 в DOCKER-USER? (sudo)"
+msg ufw_ts_ok "faixa Tailscale liberada no ufw-docker" "Tailscale range allowed in ufw-docker" "rango Tailscale liberado en ufw-docker" "plage Tailscale autorisée dans ufw-docker" "диапазон Tailscale разрешён в ufw-docker"
+msg ufw_ts_skip "sem liberar, outros aparelhos Tailscale não alcançam :3090/:8089 enquanto o ufw-docker estiver ativo." "without allowing it, other Tailscale devices cannot reach :3090/:8089 while ufw-docker is active." "sin liberarlo, otros aparatos Tailscale no alcanzan :3090/:8089 mientras ufw-docker esté activo." "sans l’autoriser, les autres appareils Tailscale n’atteignent pas :3090/:8089 tant que ufw-docker est actif." "без разрешения другие устройства Tailscale не достучатся до :3090/:8089, пока активен ufw-docker."
+msg ufw_ts_fail "não deu para editar /etc/ufw/after.rules; rode com sudo ou acrescente manualmente: -A DOCKER-USER -j RETURN -s 100.64.0.0/10" "could not edit /etc/ufw/after.rules; run with sudo or add manually: -A DOCKER-USER -j RETURN -s 100.64.0.0/10" "no se pudo editar /etc/ufw/after.rules; ejecuta con sudo o añade a mano: -A DOCKER-USER -j RETURN -s 100.64.0.0/10" "impossible de modifier /etc/ufw/after.rules ; lancez avec sudo ou ajoutez à la main : -A DOCKER-USER -j RETURN -s 100.64.0.0/10" "не удалось изменить /etc/ufw/after.rules; запустите с sudo или добавьте вручную: -A DOCKER-USER -j RETURN -s 100.64.0.0/10"
+msg ufw_ts_done "ufw-docker já libera a faixa Tailscale" "ufw-docker already allows the Tailscale range" "ufw-docker ya libera el rango Tailscale" "ufw-docker autorise déjà la plage Tailscale" "ufw-docker уже разрешает диапазон Tailscale"
 msg bind_ok "painel em %s" "panel on %s" "panel en %s" "panneau sur %s" "панель на %s"
 msg env_bak "o .env anterior foi guardado como backup" "the previous .env was backed up" "el .env anterior se guardó como copia de seguridad" "l’ancien .env a été sauvegardé" "прежний .env сохранён как резервная копия"
 msg env_ok ".env escrito (chmod 600)" ".env written (chmod 600)" ".env escrito (chmod 600)" ".env écrit (chmod 600)" ".env записан (chmod 600)"
@@ -247,6 +253,59 @@ ok "$(m bind_ok "$BIND")"
 ADMIN_PW="${URUTAU_PASSWORD-}"
 VIEW_PW="${URUTAU_VIEW_PASSWORD-}"
 is_local_bind() { [[ "$1" == "127.0.0.1" || "$1" == "localhost" || "$1" == "::1" ]]; }
+
+# ufw-docker: DOCKER-USER libera 10/8, 172.16/12 e 192.168/16, mas não a CGNAT do Tailscale
+# (100.64.0.0/10). Sem isso, opção 2/3 abre na LAN e fica inacessível por outros nós Tailscale.
+ensure_ufw_docker_tailscale() {
+  local after=/etc/ufw/after.rules
+  local cgnat=100.64.0.0/10
+  local tmp
+  [[ -r "$after" ]] || return 0
+  grep -qF '# BEGIN UFW AND DOCKER' "$after" || return 0
+  if grep -qF -- "-A DOCKER-USER -j RETURN -s ${cgnat}" "$after"; then
+    ok "$(m ufw_ts_done)"
+    return 0
+  fi
+  warn "$(m ufw_ts)"
+  if ! yesno "$(m ufw_ts_ask)" "s"; then
+    warn "$(m ufw_ts_skip)"
+    return 0
+  fi
+  tmp="$(mktemp)"
+  # após 192.168/16 se existir; senão imediatamente antes do RETURN final do bloco
+  if ! awk -v cgnat="$cgnat" '
+    BEGIN { inblock=0; done=0 }
+    /^# BEGIN UFW AND DOCKER/ { inblock=1 }
+    /^# END UFW AND DOCKER/ { inblock=0 }
+    inblock && !done && /^-A DOCKER-USER -j RETURN -s 192\.168\.0\.0\/16[[:space:]]*$/ {
+      print
+      print "-A DOCKER-USER -j RETURN -s " cgnat
+      done=1
+      next
+    }
+    inblock && !done && /^-A DOCKER-USER -j RETURN[[:space:]]*$/ {
+      print "-A DOCKER-USER -j RETURN -s " cgnat
+      done=1
+    }
+    { print }
+    END { exit(done ? 0 : 1) }
+  ' "$after" >"$tmp"; then
+    rm -f "$tmp"
+    warn "$(m ufw_ts_fail)"
+    return 0
+  fi
+  if ! sudo cp "$tmp" "$after"; then
+    rm -f "$tmp"
+    warn "$(m ufw_ts_fail)"
+    return 0
+  fi
+  rm -f "$tmp"
+  sudo ufw reload >/dev/null 2>&1 || true
+  ok "$(m ufw_ts_ok)"
+}
+if ! is_local_bind "$BIND"; then
+  ensure_ufw_docker_tailscale
+fi
 if ! is_local_bind "$BIND"; then
   if [[ $YES == 1 ]]; then
     # -y: usa env; se não houver senha, gera e imprime uma vez

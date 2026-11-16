@@ -2,6 +2,12 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); as versões seguem o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [0.5.1] - 2026-11-16
+
+### Corrigido
+
+- Com [ufw-docker](https://github.com/chaifeng/ufw-docker), o instalador (acesso pela rede / Tailscale) libera a faixa `100.64.0.0/10` em `DOCKER-USER`. Antes só as redes locais privadas passavam: o painel abria na LAN e ficava inacessível por outros nós Tailscale.
+
 ## [0.5.0] - 2026-11-16
 
 ### Adicionado
@@ -97,6 +103,7 @@ Primeira versão pública.
 - Sem envio de dados a redes de rastreamento nem ao SondeHub; fontes distribuídas com o software.
 - A localização da antena é opcional e fica apenas no `.env` e no volume local.
 
+[0.5.1]: https://github.com/mateuspestana/urutau/releases/tag/v0.5.1
 [0.5.0]: https://github.com/mateuspestana/urutau/releases/tag/v0.5.0
 [0.4.0]: https://github.com/mateuspestana/urutau/releases/tag/v0.4.0
 [0.3.0]: https://github.com/mateuspestana/urutau/releases/tag/v0.3.0

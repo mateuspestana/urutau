@@ -225,6 +225,8 @@ De forma predeterminada, el panel solo se abre en el propio ordenador (`127.0.0.
 
 Con las opciones 2 o 3, abre `http://<dirección-de-la-estación>:3090` en otro dispositivo (por ejemplo, el nombre o la IP de la máquina en Tailscale). Los enlaces a tar1090 y a los gráficos siguen automáticamente la dirección utilizada y pasan por el mismo proxy autenticado en el puerto `:8089`. El puerto de la API (`8000`) queda solo en `127.0.0.1`. Con la opción 3, Tailscale debe estar conectado antes de que arranque Docker. Con contraseña activa, solo el admin cambia el modo del receptor; la API controla el Docker de la máquina: permite el acceso solo en redes de confianza.
 
+Si la máquina usa [ufw-docker](https://github.com/chaifeng/ufw-docker), el instalador (opciones 2 y 3) añade `100.64.0.0/10` a la cadena `DOCKER-USER`: el paquete solo liberaba redes locales (`10/8`, `172.16/12`, `192.168/16`), y sin el rango Tailscale el panel abría en la LAN y quedaba inaccesible desde otros nodos Tailscale.
+
 Las notificaciones del sistema del navegador (API Notification) y la [instalación como PWA](#instalar-en-el-móvil-pwa) solo existen en HTTPS o en `localhost`. En `http://100.x.y.z` no aparecen; la campana, el toast y el título de la pestaña siguen funcionando. Para HTTPS en la red Tailscale, con el panel solo en `127.0.0.1:3090`, use por ejemplo `tailscale serve --bg 3090` (consulte `tailscale serve --help` en su versión).
 
 Para cambiar la opción más adelante, vuelve a ejecutar `./install.sh`, o edita `URUTAU_BIND` en el `.env` y ejecuta `docker compose up -d`.
