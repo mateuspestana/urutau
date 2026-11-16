@@ -803,6 +803,14 @@ const d: Dict = {
   'última janela: {n} msgs': 'last window: {n} msgs',
   'ADS-B voltou em {s} s': 'ADS-B back in {s} s',
   '{n} ciclos': { one: '{n} cycle', other: '{n} cycles' },
+  'Contorno': 'Outline',
+  'Suave': 'Smooth',
+  'Bruto': 'Raw',
+  'Os dois': 'Both',
+  'Mediana ±°': 'Median ±°',
+  'Gaussiana σ°': 'Gaussian σ°',
+  'Preencher buracos até °': 'Fill gaps up to °',
+  'Padrão': 'Default',
 }
 
 export default d

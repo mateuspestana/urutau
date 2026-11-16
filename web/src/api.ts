@@ -53,6 +53,10 @@ export type StationConfig = {
   alerts?: AlertRules
   retention?: RetentionConfig
   update_check?: boolean
+  range_median_deg?: number
+  range_sigma_deg?: number
+  range_gap_deg?: number
+  range_view?: RangeView
   tower_cycle?: boolean
   tower_adsb_s?: number
   tower_acars_s?: number
@@ -152,6 +156,11 @@ export type RangePoint = {
   first_lon?: number
 }
 
+export type RangeView = 'smooth' | 'raw' | 'both'
+
+/** Suavização do contorno (graus) e qual vista aparece nas telas Alcance e ADS-B. */
+export type RangeSmoothing = { median_deg: number; sigma_deg: number; gap_deg: number; view: RangeView }
+
 export type RangeSummary = {
   receiver: { lat: number | null; lon: number | null; address: string }
   stats: {
@@ -167,6 +176,8 @@ export type RangeSummary = {
   avg_max_km: number
   p50_km: number
   outline: RangePoint[]
+  raw_outline?: RangePoint[]
+  smoothing?: RangeSmoothing
   first_contacts: RangePoint[]
   last_contacts: RangePoint[]
 }

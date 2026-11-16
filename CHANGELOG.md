@@ -2,6 +2,16 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); as versões seguem o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [0.7.0] - 2026-11-16
+
+### Adicionado
+
+- Estudo de alcance: o contorno pode ser exibido **suave**, **bruto** ou **os dois** (o bruto aparece tracejado, em azul), e a suavização é ajustável na aba Alcance: mediana, gaussiana e tamanho máximo dos buracos preenchidos. A escolha vale também para o mapa da aba ADS-B.
+
+### Alterado
+
+- A suavização padrão ficou mais fiel: mediana de ±4° (antes ±8°) e gaussiana de σ 2° (antes σ 3°). Antes, aeronaves que subiam em azimute fixo, vistas a 30–40 km, eram achatadas pelo filtro e ficavam fora do contorno.
+
 ## [0.6.1] - 2026-11-16
 
 ### Corrigido
@@ -123,6 +133,7 @@ Primeira versão pública.
 - Sem envio de dados a redes de rastreamento nem ao SondeHub; fontes distribuídas com o software.
 - A localização da antena é opcional e fica apenas no `.env` e no volume local.
 
+[0.7.0]: https://github.com/mateuspestana/urutau/releases/tag/v0.7.0
 [0.6.1]: https://github.com/mateuspestana/urutau/releases/tag/v0.6.1
 [0.6.0]: https://github.com/mateuspestana/urutau/releases/tag/v0.6.0
 [0.5.2]: https://github.com/mateuspestana/urutau/releases/tag/v0.5.2

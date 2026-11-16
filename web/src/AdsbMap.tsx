@@ -13,6 +13,8 @@ type Props = {
   aircraft: AircraftView[]
   markers: Marker[]
   rangeOutline?: RangePoint[]
+  rangeRawOutline?: RangePoint[]
+  rangeView?: 'smooth' | 'raw' | 'both'
   firstContacts?: RangePoint[]
   lastContacts?: RangePoint[]
   showRangeOutline?: boolean
@@ -104,6 +106,8 @@ export function AdsbMap({
   aircraft,
   markers,
   rangeOutline = [],
+  rangeRawOutline = [],
+  rangeView = 'smooth',
   firstContacts = [],
   lastContacts = [],
   showRangeOutline = true,
@@ -188,10 +192,24 @@ export function AdsbMap({
       .bindPopup('<strong>Receptor</strong>')
       .addTo(layer)
 
-    if (showRangeOutline && rangeOutline.length > 2) {
+    if (showRangeOutline && rangeView !== 'raw' && rangeOutline.length > 2) {
       L.polygon(
         rangeOutline.map((p) => [p.lat, p.lon] as [number, number]),
         { color: '#e85d2a', weight: 2, fillColor: '#ff6b35', fillOpacity: 0.15, opacity: 0.9, interactive: false },
+      ).addTo(layer)
+    }
+    if (showRangeOutline && rangeView !== 'smooth' && rangeRawOutline.length > 2) {
+      L.polygon(
+        rangeRawOutline.map((p) => [p.lat, p.lon] as [number, number]),
+        {
+          color: '#3a7bd5',
+          weight: rangeView === 'raw' ? 2 : 1,
+          dashArray: '4 4',
+          fillColor: '#3a7bd5',
+          fillOpacity: rangeView === 'raw' ? 0.12 : 0,
+          opacity: 0.9,
+          interactive: false,
+        },
       ).addTo(layer)
     }
     if (showRangeFirst) {
@@ -223,7 +241,7 @@ export function AdsbMap({
         .bindPopup(`<strong>${track.label}</strong> · ${t('registro')}<br/>${last.km ?? '?'} km · alt ${last.alt ?? '?'}`)
         .addTo(layer)
     }
-  }, [ready, center, showRings, showRangeOutline, showRangeFirst, showRangeLast, rangeOutline, firstContacts, lastContacts, markers, track])
+  }, [ready, center, showRings, showRangeOutline, showRangeFirst, showRangeLast, rangeOutline, rangeRawOutline, rangeView, firstContacts, lastContacts, markers, track])
 
   // enquadra a trilha do registro só quando ela muda
   useEffect(() => {

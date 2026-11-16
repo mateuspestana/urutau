@@ -153,6 +153,10 @@ class ConfigIn(BaseModel):
     sdr_serial: str | None = None
     retention: dict[str, int | None] | None = None
     update_check: bool | None = None
+    range_median_deg: float | None = None
+    range_sigma_deg: float | None = None
+    range_gap_deg: float | None = None
+    range_view: str | None = None
     tower_cycle: bool | None = None
     tower_adsb_s: float | None = None
     tower_acars_s: float | None = None

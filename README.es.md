@@ -126,6 +126,8 @@ Cada aeronave recibida se registra en una base SQLite, incluidas las que no tran
 
 Mientras ADS-B está activo, Urutau mide de forma continua el alcance de la estación en 360 sectores de 1°, a partir del primer y el último contacto de cada aeronave. El contorno resultante se suaviza (interpolación de huecos, mediana circular y filtro gaussiano) para que una aeronave aislada no produzca un pico artificial; el máximo bruto sigue disponible en las estadísticas. En el mapa, el contorno, los puntos verdes (apareció) y los rojos (desapareció) se encienden y apagan por separado. El estudio también exporta un informe HTML autónomo.
 
+El contorno puede mostrarse **suavizado**, **bruto** (máximo de cada sector, sin filtro) o **ambos**, y la suavización se ajusta en la pestaña Alcance: mediana (±4° por defecto), gaussiana (σ 2°) y tamaño máximo de los huecos que se rellenan (45°). La elección vale también para el mapa de la pestaña ADS-B.
+
 ### Torre (ADS-B + ACARS)
 
 La pestaña Torre es una consola sin mapa: lista de tráfico ADS-B, detalle del seleccionado y feed ACARS/VDL2, cruzados por hex/vuelo/matrícula. Relojes UTC y local, sellos de modo y Esc para salir. Pensada para seguir el tráfico y el datalink en la misma pantalla.

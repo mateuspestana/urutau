@@ -126,6 +126,8 @@ Chaque aéronef reçu est enregistré dans une base SQLite, y compris ceux qui n
 
 Tant que l’ADS-B est actif, Urutau mesure en continu la portée de la station sur 360 secteurs de 1°, à partir du premier et du dernier contact de chaque aéronef. Le contour obtenu est lissé (interpolation des lacunes, médiane circulaire et filtre gaussien), de sorte qu’un aéronef isolé ne crée pas de pic artificiel ; le maximum brut reste disponible dans les statistiques. Sur la carte, le contour, les points verts (apparition) et rouges (disparition) s’activent chacun séparément. L’étude exporte aussi un rapport HTML autonome.
 
+Le contour peut être affiché **lissé**, **brut** (maximum de chaque secteur, sans filtre) ou **les deux**, et le lissage se règle dans l’onglet Portée : médiane (±4° par défaut), gaussienne (σ 2°) et taille maximale des trous comblés (45°). Le choix s’applique aussi à la carte de l’onglet ADS-B.
+
 ### Tour (ADS-B + ACARS)
 
 L’onglet Tour est une console sans carte : liste de trafic ADS-B, détail de la sélection et flux ACARS/VDL2, croisés par hex/vol/immatriculation. Horloges UTC et locale, pastilles de mode et Esc pour quitter. Pensée pour suivre le trafic et le datalink sur le même écran.

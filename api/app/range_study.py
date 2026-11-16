@@ -14,9 +14,11 @@ from . import aircraftdb, flightlog, store
 
 DATA = store.DATA / "range.json"
 BINS = 360  # 1° por setor
-MEDIAN_HALF = 8  # mediana circular de ±8°: derruba picos estreitos (uma aeronave só)
-GAUSS_SIGMA = 3.0  # suavização final do contorno, em graus
-GAUSS_HALF = 9
+# padrões da suavização; a pessoa ajusta na aba Alcance (config range_median_deg, range_sigma_deg, range_gap_deg)
+MEDIAN_HALF = 4  # mediana circular de ±4°: derruba picos com menos de ~4° (uma aeronave só)
+GAUSS_SIGMA = 2.0  # suavização final do contorno, em graus
+GAP_MAX = 45  # buracos de até este tamanho (graus) são interpolados
+RANGE_VIEWS = ("smooth", "raw", "both")
 
 
 def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -221,24 +223,51 @@ class RangeStudy:
             if len(self.last_contacts) > 500:
                 self.last_contacts = self.last_contacts[-500:]
 
-    def smoothed_km(self) -> list[float | None]:
+    @staticmethod
+    def smoothing_params(cfg: dict[str, Any] | None = None) -> dict[str, Any]:
+        """Parâmetros atuais da suavização e da vista (config), já limitados a valores que fazem sentido."""
+        cfg = cfg if cfg is not None else store.load_config()
+
+        def num(key: str, default: float, lo: float, hi: float) -> float:
+            try:
+                v = float(cfg.get(key, default))
+            except (TypeError, ValueError):
+                v = default
+            return min(max(v, lo), hi)
+
+        view = cfg.get("range_view")
+        return {
+            "median_deg": int(round(num("range_median_deg", MEDIAN_HALF, 0, 20))),
+            "sigma_deg": round(num("range_sigma_deg", GAUSS_SIGMA, 0, 10), 1),
+            "gap_deg": int(round(num("range_gap_deg", GAP_MAX, 0, 90))),
+            "view": view if view in RANGE_VIEWS else "smooth",
+        }
+
+    def smoothed_km(self, median_half: int | None = None, sigma: float | None = None,
+                    gap_max: int | None = None) -> list[float | None]:
         """Alcance por azimute suavizado; None onde não há dado perto.
 
         O máximo bruto por setor de 1° vira pico quando uma única aeronave passa longe num setor onde o
-        resto do tráfego é curto. Por isso: (1) buracos de até 45° são preenchidos por interpolação linear
-        circular; (2) mediana circular de ±8° derruba picos com menos de ~8° de largura; (3) média gaussiana
-        (σ 3°) arredonda o contorno. O máximo bruto continua em `polar_max_km` e nas estatísticas.
+        resto do tráfego é curto. Por isso: (1) buracos de até `gap_max`° são preenchidos por interpolação
+        linear circular; (2) mediana circular de ±`median_half`° derruba picos mais estreitos que isso;
+        (3) média gaussiana (σ = `sigma`°) arredonda o contorno. Zero desliga a etapa. Sem argumentos usa a
+        config. O máximo bruto continua em `polar_max_km` e nas estatísticas.
         """
+        if median_half is None or sigma is None or gap_max is None:
+            prm = self.smoothing_params()
+            median_half = prm["median_deg"] if median_half is None else median_half
+            sigma = prm["sigma_deg"] if sigma is None else sigma
+            gap_max = prm["gap_deg"] if gap_max is None else gap_max
         raw = [k if k > 0 else None for k in self.polar_max_km]
         known = [i for i, k in enumerate(raw) if k is not None]
         if not known:
             return [None] * BINS
         filled: list[float | None] = list(raw)
-        if len(known) > 1:
+        if len(known) > 1 and gap_max > 0:
             for n, i in enumerate(known):
                 j = known[(n + 1) % len(known)]
                 gap = (j - i) % BINS
-                if 1 < gap <= 46:
+                if 1 < gap <= gap_max + 1:
                     a, b = raw[i], raw[j]
                     for d in range(1, gap):
                         filled[(i + d) % BINS] = a + (b - a) * d / gap  # type: ignore[operator]
@@ -246,21 +275,39 @@ class RangeStudy:
         for i in range(BINS):
             if filled[i] is None:
                 continue
-            win = sorted(v for d in range(-MEDIAN_HALF, MEDIAN_HALF + 1) if (v := filled[(i + d) % BINS]) is not None)
+            if median_half <= 0:
+                med[i] = filled[i]
+                continue
+            win = sorted(v for d in range(-median_half, median_half + 1) if (v := filled[(i + d) % BINS]) is not None)
             med[i] = win[len(win) // 2]
-        kern = [math.exp(-0.5 * (d / GAUSS_SIGMA) ** 2) for d in range(-GAUSS_HALF, GAUSS_HALF + 1)]
+        if sigma <= 0:
+            return med
+        half = max(1, math.ceil(3 * sigma))
+        kern = [math.exp(-0.5 * (d / sigma) ** 2) for d in range(-half, half + 1)]
         out: list[float | None] = [None] * BINS
         for i in range(BINS):
             if med[i] is None:
                 continue
             acc = wsum = 0.0
-            for d, w in zip(range(-GAUSS_HALF, GAUSS_HALF + 1), kern, strict=True):
+            for d, w in zip(range(-half, half + 1), kern, strict=True):
                 v = med[(i + d) % BINS]
                 if v is not None:
                     acc += v * w
                     wsum += w
             out[i] = acc / wsum
         return out
+
+    def raw_outline(self) -> list[dict[str, float]]:
+        """Polígono lat/lon do alcance bruto (máximo de cada setor de 1°, sem suavizar)."""
+        rx = store.receiver()
+        if rx is None:
+            return []
+        pts = []
+        for i, km in enumerate(self.polar_max_km):
+            if km > 0:
+                lat, lon = destination(rx[0], rx[1], float(i), km)
+                pts.append({"lat": lat, "lon": lon, "km": round(km, 2), "bearing": i})
+        return pts
 
     def outline(self) -> list[dict[str, float]]:
         """Polígono lat/lon do alcance suavizado por azimute (ver `smoothed_km`)."""
@@ -292,6 +339,8 @@ class RangeStudy:
             "avg_max_km": round(sum(nonzero) / len(nonzero), 2) if nonzero else 0.0,
             "p50_km": round(sorted(nonzero)[len(nonzero) // 2], 2) if nonzero else 0.0,
             "outline": self.outline(),
+            "raw_outline": self.raw_outline(),
+            "smoothing": self.smoothing_params(),
             "first_contacts": self.first_contacts[-100:],
             "last_contacts": self.last_contacts[-100:],
             "polar_max_km": [round(x, 2) for x in self.polar_max_km],

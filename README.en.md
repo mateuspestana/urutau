@@ -126,6 +126,8 @@ Every aircraft received is logged in an SQLite database, including those that do
 
 While ADS-B is on, Urutau continuously measures the station’s range in 360 sectors of 1°, from each aircraft’s first and last contact. The resulting outline is smoothed (gap interpolation, circular median and Gaussian filter), so that a single aircraft does not create an artificial spike; the raw maximum remains available in the statistics. On the map, the outline, green dots (first seen) and red dots (last seen) can each be toggled on or off. The study also exports a standalone HTML report.
 
+The outline can be shown **smoothed**, **raw** (each sector’s maximum, unfiltered) or **both**, and the smoothing is adjustable in the Range tab: median (±4° by default), Gaussian (σ 2°) and the largest gap that is filled (45°). The choice also applies to the map in the ADS-B tab.
+
 ### Tower (ADS-B + ACARS)
 
 The Tower tab is a map-free console: ADS-B traffic list, selected aircraft detail and ACARS/VDL2 feed, cross-linked by hex/flight/registration. UTC and local clocks, mode badges and Esc to leave. Meant for watching traffic and datalink on one screen.

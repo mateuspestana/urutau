@@ -373,6 +373,8 @@ export function AdsbPanel({
             showRangeFirst={showRangeFirst}
             showRangeLast={showRangeLast}
             rangeOutline={range?.outline}
+            rangeRawOutline={range?.raw_outline}
+            rangeView={range?.smoothing?.view}
             firstContacts={range?.first_contacts}
             lastContacts={range?.last_contacts}
             track={logTrack}

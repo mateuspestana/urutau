@@ -506,6 +506,12 @@ export default function App() {
     }
   }
 
+  const saveSmoothing = (patch: Parameters<typeof api.saveConfig>[0]) =>
+    rangeAction(async () => {
+      await api.saveConfig(patch)
+      setRange(await api.range())
+    })
+
   if (!authReady) {
     return <div className="desk desk-loading" aria-busy="true" />
   }
@@ -1092,6 +1098,66 @@ export default function App() {
               {t('Posições')}
               <b>{range?.stats.positions ?? 0}</b>
             </div>
+          </div>
+          <div className="row range-smooth">
+            <span className="muted">{t('Contorno')}</span>
+            {(['smooth', 'raw', 'both'] as const).map((v) => (
+              <button
+                key={v}
+                type="button"
+                className={(range?.smoothing?.view ?? 'smooth') === v ? 'on' : ''}
+                disabled={locked}
+                onClick={() => saveSmoothing({ range_view: v })}
+              >
+                {v === 'smooth' ? t('Suave') : v === 'raw' ? t('Bruto') : t('Os dois')}
+              </button>
+            ))}
+            <label>
+              {t('Mediana ±°')}
+              <input
+                key={`m${range?.smoothing?.median_deg}`}
+                type="number"
+                min={0}
+                max={20}
+                step={1}
+                defaultValue={range?.smoothing?.median_deg ?? 4}
+                disabled={locked}
+                onBlur={(e) => saveSmoothing({ range_median_deg: Number(e.target.value) })}
+              />
+            </label>
+            <label>
+              {t('Gaussiana σ°')}
+              <input
+                key={`s${range?.smoothing?.sigma_deg}`}
+                type="number"
+                min={0}
+                max={10}
+                step={0.5}
+                defaultValue={range?.smoothing?.sigma_deg ?? 2}
+                disabled={locked}
+                onBlur={(e) => saveSmoothing({ range_sigma_deg: Number(e.target.value) })}
+              />
+            </label>
+            <label>
+              {t('Preencher buracos até °')}
+              <input
+                key={`g${range?.smoothing?.gap_deg}`}
+                type="number"
+                min={0}
+                max={90}
+                step={5}
+                defaultValue={range?.smoothing?.gap_deg ?? 45}
+                disabled={locked}
+                onBlur={(e) => saveSmoothing({ range_gap_deg: Number(e.target.value) })}
+              />
+            </label>
+            <button
+              type="button"
+              disabled={locked}
+              onClick={() => saveSmoothing({ range_median_deg: 4, range_sigma_deg: 2, range_gap_deg: 45, range_view: 'smooth' })}
+            >
+              {t('Padrão')}
+            </button>
           </div>
           <div className="row">
             <button

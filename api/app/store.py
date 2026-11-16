@@ -53,6 +53,11 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "sonde_auto": False,
     # as estações do INMET/DECEA soltam sondas por volta de 00Z e 12Z → 21h e 9h em Brasília, com ~45 min de antecedência
     "sonde_windows": ["08:00-10:30", "20:00-22:30"],
+    # estudo de alcance: suavização do contorno e vista (smooth | raw | both); ver range_study.py
+    "range_median_deg": 4,
+    "range_sigma_deg": 2.0,
+    "range_gap_deg": 45,
+    "range_view": "smooth",
     # torre com um dongle: alterna ADS-B e ACARS (ver tower_cycle.py); desligado por padrão
     "tower_cycle": False,
     "tower_adsb_s": 180.0,
