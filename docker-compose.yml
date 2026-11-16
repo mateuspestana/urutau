@@ -2,13 +2,13 @@
 # Autor: Matheus C. Pestana — MACAPE Pesquisas e Consultoria em Tecnologia Ltda
 #
 # Painel:  http://localhost:3090
-# tar1090: http://localhost:8089
-# API:     http://localhost:8000/docs
+# tar1090: http://localhost:8089  (proxy pelo web, atrás da senha se houver)
+# API docs: http://localhost:3090/api/docs  (a API em :8000 só escuta em 127.0.0.1)
 #
-# Por padrão tudo fica preso a 127.0.0.1 (só esta máquina). URUTAU_BIND no .env muda isso:
+# Por padrão o painel fica preso a 127.0.0.1. URUTAU_BIND no .env muda isso:
 #   0.0.0.0        → rede local e Tailscale (todas as interfaces)
 #   100.x.y.z      → só o IP do Tailscale desta máquina (tailscale ip -4)
-# Quem abre o painel também troca o modo do dongle, e a API controla o Docker desta máquina.
+# Com BIND aberto, defina URUTAU_PASSWORD (e opcionalmente URUTAU_VIEW_PASSWORD).
 
 name: urutau
 
@@ -25,8 +25,7 @@ services:
       - ultrafeeder_globe_history:/var/globe_history
       - ultrafeeder_graphs:/run/collectd
       - /etc/localtime:/etc/localtime:ro
-    ports:
-      - "${URUTAU_BIND:-127.0.0.1}:8089:80"
+    # tar1090 não publica porta no host: o web faz proxy em :8089 com auth_request
     environment:
       - TZ=${TZ:-America/Sao_Paulo}
       - READSB_LAT=${READSB_LAT:-}
@@ -60,12 +59,15 @@ services:
       - api_data:/data
       - /etc/localtime:/etc/localtime:ro
     ports:
-      - "${URUTAU_BIND:-127.0.0.1}:8000:8000"
+      # sempre só localhost: o painel acessa por /api/ no nginx; nunca URUTAU_BIND
+      - "127.0.0.1:8000:8000"
     environment:
       - TZ=${TZ:-America/Sao_Paulo}
       - READSB_LAT=${READSB_LAT:-}
       - READSB_LON=${READSB_LON:-}
       - URUTAU_BIND=${URUTAU_BIND:-127.0.0.1}
+      - URUTAU_PASSWORD=${URUTAU_PASSWORD:-}
+      - URUTAU_VIEW_PASSWORD=${URUTAU_VIEW_PASSWORD:-}
       - ULTRAFEEDER_CONTAINER=urutau-ultrafeeder
       - SONDE_CONTAINER=urutau-radiosonde
       # contato (URL ou e-mail) exigido pelo planespotters no User-Agent; vazio = sem fotos pelo servidor
@@ -83,8 +85,10 @@ services:
     restart: unless-stopped
     ports:
       - "${URUTAU_BIND:-127.0.0.1}:3090:80"
+      - "${URUTAU_BIND:-127.0.0.1}:8089:8089"
     depends_on:
       - api
+      - ultrafeeder
 
 volumes:
   ultrafeeder_globe_history:

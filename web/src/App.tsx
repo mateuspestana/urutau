@@ -5,6 +5,7 @@ import { api } from './api'
 import type {
   Marker,
   RangeSummary,
+  Recording,
   SpectrumPoint,
   StationConfig,
   StationStatus,
@@ -22,6 +23,8 @@ import { Aprs } from './Aprs'
 import { Sondes } from './Sondes'
 import { Ism } from './Ism'
 import { Sats } from './Sats'
+import { Health } from './Health'
+import { Schedule } from './Schedule'
 import { RdsCard } from './RdsCard'
 import { useStored } from './useStored'
 import { SpectrumChart } from './SpectrumChart'
@@ -34,8 +37,11 @@ import './App.css'
 import { Icon } from './Icon'
 import { BandDial } from './BandDial'
 import type { StationId } from './BandDial'
-import { fmtNum, LANGS, markApi, t, tApi, tn, useLang } from './i18n'
+import { fmtBytes } from './decoderUtil'
+import { fmtDate, fmtNum, LANGS, markApi, t, tApi, tn, useLang } from './i18n'
 import type { Lang } from './i18n'
+import { Login } from './Login'
+import { useAuth } from './useAuth'
 
 const PRESETS_FM = [90.3, 94.1, 98.1, 99.3, 101.3, 103.3, 105.1]
 const PRESETS_AIR = [118.3, 119.0, 119.3, 119.35, 120.1, 120.75, 121.5, 122.8]
@@ -48,7 +54,9 @@ const TABS: { id: string; label: string }[] = [
   { id: 'espectro', label: markApi('Espectro') },
   { id: 'decod', label: markApi('Decodificadores') },
   { id: 'registro', label: markApi('Registro') },
+  { id: 'agenda', label: markApi('Agenda') },
   { id: 'alcance', label: markApi('Alcance') },
+  { id: 'saude', label: markApi('Saúde') },
   { id: 'graficos', label: markApi('Gráficos') },
   { id: 'config', label: markApi('Config') },
 ]
@@ -97,6 +105,7 @@ function readTheme(): ThemeMode {
 
 export default function App() {
   const { lang, setLang } = useLang()
+  const { ready: authReady, authRequired, role, canControl, logout } = useAuth()
   const [theme, setTheme] = useState<ThemeMode>(readTheme)
   const [status, setStatus] = useState<StationStatus | null>(null)
   const [config, setConfig] = useState<StationConfig | null>(null)
@@ -131,6 +140,9 @@ export default function App() {
   const [lastDecod, setLastDecod] = useStored('last-decod', 'datalink')
   const inDecod = DECOD.some((d) => d.id === tab)
   const [adsbSummary, setAdsbSummary] = useState<AdsbSummary | null>(null)
+  const [healthCritical, setHealthCritical] = useState(false)
+  const [recordings, setRecordings] = useState<Recording[]>([])
+  const [recMaxGb, setRecMaxGb] = useState(2)
   /** a config só preenche o formulário na 1ª carga (antes sobrescrevia o que o usuário digitava a cada 2,5 s) */
   const cfgLoaded = useRef(false)
   const refresh = useCallback(async () => {
@@ -205,9 +217,37 @@ export default function App() {
     window.scrollTo({ top: 0 })
   }, [lastDecod, setLastDecod])
 
+  const loadRecordings = useCallback(() => {
+    api
+      .recList()
+      .then((r) => {
+        setRecordings(r.recordings)
+        setRecMaxGb(r.rec_max_gb ?? 2)
+      })
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    if (tab !== 'radio') return
+    loadRecordings()
+    const id = setInterval(loadRecordings, 30_000)
+    return () => clearInterval(id)
+  }, [tab, loadRecordings])
+
   const flash = (msg: string) => {
     setToast(msg)
     setTimeout(() => setToast(''), 4000)
+  }
+
+  const deleteRecording = async (name: string) => {
+    if (!canControl) return
+    try {
+      await api.recDelete(name)
+      flash(t('Gravação apagada'))
+      loadRecordings()
+    } catch (e) {
+      flash(String(e))
+    }
   }
 
   const runMode = async (
@@ -217,6 +257,7 @@ export default function App() {
     freqs?: number[],
     extra?: { sat?: string; duration?: number },
   ) => {
+    if (!canControl) return
     setBusy(true)
     try {
       specLoopRef.current = false
@@ -237,7 +278,7 @@ export default function App() {
 
   const saveCfg = async (e: FormEvent) => {
     e.preventDefault()
-    if (!config) return
+    if (!config || !canControl) return
     setBusy(true)
     try {
       const next = await api.saveConfig({
@@ -321,6 +362,7 @@ export default function App() {
   const specPeaks = useMemo(() => findPeaks(spectrum), [spectrum])
 
   const addMarker = async (e: FormEvent) => {
+    if (!canControl) return
     e.preventDefault()
     const body = {
       title: draftMarker.title || t('Marcador'),
@@ -392,6 +434,7 @@ export default function App() {
   }
 
   const rangeAction = async (fn: () => Promise<void>) => {
+    if (!canControl) return
     setBusy(true)
     try {
       await fn()
@@ -401,6 +444,16 @@ export default function App() {
       setBusy(false)
     }
   }
+
+  if (!authReady) {
+    return <div className="desk desk-loading" aria-busy="true" />
+  }
+  if (authRequired && !role) {
+    return <Login />
+  }
+
+  const noControl = !canControl
+  const locked = busy || noControl
 
   return (
     <div className="desk">
@@ -437,6 +490,11 @@ export default function App() {
                 <span className="tab-badge live" title={t('Decodificador rodando')} />
               ) : null}
               {tb.id === 'navios' && status?.mode === 'ais' ? <span className="tab-badge live" title={t('Recebendo AIS')} /> : null}
+              {tb.id === 'saude' && healthCritical ? (
+                <span className="tab-badge emerg" title={t('Aviso crítico')}>
+                  <Icon name="alert" size={12} />
+                </span>
+              ) : null}
             </a>
           ))}
           <a href={tar1090Base} target="_blank" rel="noreferrer" className="ext">
@@ -448,6 +506,21 @@ export default function App() {
             <span className={`dot${holding ? ' on' : ''}`} />
             {MODE_NAME[status?.mode || ''] ? t(MODE_NAME[status?.mode || '']) : status?.mode || '…'}
           </div>
+          {authRequired && role ? (
+            <>
+              <span className="role-badge" title={role === 'admin' ? t('Administrador') : t('Visitante')}>
+                {role === 'admin' ? t('Admin') : t('Visitante')}
+              </span>
+              <button
+                type="button"
+                className="theme-toggle"
+                onClick={() => logout().catch(() => {})}
+                aria-label={t('Sair')}
+              >
+                {t('Sair')}
+              </button>
+            </>
+          ) : null}
           <select
             className="lang-select"
             value={lang}
@@ -482,11 +555,11 @@ export default function App() {
           readout={{ mode: MODE_NAME[status?.mode || ''] ? t(MODE_NAME[status?.mode || '']) : t('Conectando…'), sub: readoutSub, on: holding }}
         />
         <div className="modes">
-          <button disabled={busy} className={status?.mode === 'adsb' ? 'on' : ''} onClick={() => runMode('adsb')}>
+          <button disabled={locked} className={status?.mode === 'adsb' ? 'on' : ''} onClick={() => runMode('adsb')}>
             ADS-B
           </button>
           <button
-            disabled={busy}
+            disabled={locked}
             className={status?.mode === 'fm' ? 'on' : ''}
             onClick={() => {
               runMode('fm', fmFreq, fmGain)
@@ -496,7 +569,7 @@ export default function App() {
             FM {fmtNum(fmFreq, 1)}
           </button>
           <button
-            disabled={busy}
+            disabled={locked}
             className={status?.mode === 'airband' ? 'on' : ''}
             onClick={() => {
               runMode('airband', airFreq, airGain)
@@ -506,7 +579,7 @@ export default function App() {
             Airband {fmtNum(airFreq, 3)}
           </button>
           <button
-            disabled={busy}
+            disabled={locked}
             className={status?.mode === 'spectrum' || specLoop ? 'on' : ''}
             onClick={() => {
               goto('espectro')
@@ -516,7 +589,7 @@ export default function App() {
             {t('Espectro')}
           </button>
           <button
-            disabled={busy}
+            disabled={locked}
             className={status?.mode === 'ais' ? 'on' : ''}
             onClick={() => {
               runMode('ais')
@@ -532,7 +605,7 @@ export default function App() {
           >
             {t('Decodificadores')}
           </button>
-          <button disabled={busy} className={status?.mode === 'idle' ? 'on' : ''} onClick={() => runMode('idle')}>
+          <button disabled={locked} className={status?.mode === 'idle' ? 'on' : ''} onClick={() => runMode('idle')}>
             {t('Liberar dongle')}
           </button>
           <span className="modes-sep" />
@@ -607,7 +680,7 @@ export default function App() {
               ))}
             </div>
             <div className="row">
-              <button className="primary" disabled={busy} onClick={() => runMode('fm', fmFreq, fmGain)}>
+              <button className="primary" disabled={locked} onClick={() => runMode('fm', fmFreq, fmGain)}>
                 {t('Sintonizar FM {f}', { f: fmtNum(fmFreq, 1) })}
               </button>
             </div>
@@ -633,7 +706,7 @@ export default function App() {
               ))}
             </div>
             <div className="row">
-              <button className="primary" disabled={busy} onClick={() => runMode('airband', airFreq, airGain)}>
+              <button className="primary" disabled={locked} onClick={() => runMode('airband', airFreq, airGain)}>
                 {t('Sintonizar AM {f}', { f: fmtNum(airFreq, 3) })}
               </button>
             </div>
@@ -644,6 +717,66 @@ export default function App() {
         </section>
         <AudioScope audio={audio} mode={status?.mode} freqMhz={freqNow} flash={flash} />
         <RdsCard active={status?.mode === 'fm'} visible={tab === 'radio'} />
+        <section className="panel sched-recs">
+          <div className="panel-head">
+            <h2>{t('Gravações no servidor')}</h2>
+            <p>
+              {t(
+                'WAV gravados pela agenda (tipo gravação) em /data/rec. Limite {n} GB — as mais antigas saem sozinhas.',
+                { n: fmtNum(recMaxGb, 1) },
+              )}
+            </p>
+          </div>
+          <div className="table-wrap">
+            <table className="ac-table">
+              <thead>
+                <tr>
+                  <th>{t('Arquivo')}</th>
+                  <th>{t('Duração')}</th>
+                  <th>{t('Tamanho')}</th>
+                  <th>{t('Quando')}</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {recordings.map((r) => (
+                  <tr key={r.name}>
+                    <td>
+                      <a href={`/api/rec/${encodeURIComponent(r.name)}`} download={r.name}>
+                        {r.name}
+                      </a>
+                      {r.recording ? <span className="muted"> · {t('gravando')}</span> : null}
+                    </td>
+                    <td>{r.duration_s != null ? t('{n} s', { n: fmtNum(r.duration_s, 0) }) : '—'}</td>
+                    <td>{fmtBytes(r.bytes)}</td>
+                    <td>
+                      {fmtDate(r.mtime, {
+                        day: '2-digit',
+                        month: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </td>
+                    <td>
+                      {canControl && !r.recording ? (
+                        <button type="button" onClick={() => deleteRecording(r.name)}>
+                          {t('Apagar')}
+                        </button>
+                      ) : null}
+                    </td>
+                  </tr>
+                ))}
+                {!recordings.length && (
+                  <tr>
+                    <td colSpan={5} className="muted">
+                      {t('Nenhuma gravação ainda')}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
       </div>
 
       <div className="tab-body tab-espectro" hidden={tab !== 'espectro'}>
@@ -673,10 +806,10 @@ export default function App() {
               {t('Seg/scan')}
               <NumField value={specSeconds} onChange={(v) => setSpecSeconds(Math.max(4, Math.min(60, Math.round(v))))} />
             </label>
-            <button className="primary" disabled={busy || specLoop} onClick={scanSpectrum}>
+            <button className="primary" disabled={locked || specLoop} onClick={scanSpectrum}>
               {t('Escanear')}
             </button>
-            <button type="button" disabled={busy} className={specLoop ? 'on' : ''} onClick={toggleSpecLoop}>
+            <button type="button" disabled={locked} className={specLoop ? 'on' : ''} onClick={toggleSpecLoop}>
               <Icon name={specLoop ? 'stop' : 'play'} />
               {specLoop ? t('Parar cascata') : t('Cascata contínua')}
             </button>
@@ -726,7 +859,7 @@ export default function App() {
                       {tuneMode && (
                         <button
                           type="button"
-                          disabled={busy || specLoop}
+                          disabled={locked || specLoop}
                           onClick={() => {
                             if (tuneMode === 'fm') setFmFreq(f)
                             else setAirFreq(f)
@@ -794,6 +927,7 @@ export default function App() {
           center={center}
           run={(mode, o) => runMode(mode, undefined, o.gain)}
           flash={flash}
+          goto={goto}
         />
       </div>
       <div className="tab-body tab-dec" hidden={tab !== 'ism'}>
@@ -806,6 +940,7 @@ export default function App() {
           visible={tab === 'satelites'}
           run={(mode, o) => runMode(mode, undefined, o.gain, undefined, { sat: o.sat, duration: o.duration })}
           flash={flash}
+          goto={goto}
         />
       </div>
 
@@ -817,6 +952,21 @@ export default function App() {
           }}
           trackId={logTrack?.id ?? null}
           flash={flash}
+        />
+      </div>
+
+      <div className="tab-body" hidden={tab !== 'agenda'}>
+        <Schedule visible={tab === 'agenda'} flash={flash} />
+      </div>
+
+      <div className="tab-body" hidden={tab !== 'saude'}>
+        <Health
+          visible={tab === 'saude'}
+          busy={busy}
+          flash={flash}
+          onCritical={setHealthCritical}
+          onStatus={refresh}
+          onBusy={setBusy}
         />
       </div>
 
@@ -858,7 +1008,7 @@ export default function App() {
           </div>
           <div className="row">
             <button
-              disabled={busy}
+              disabled={locked}
               onClick={() =>
                 rangeAction(async () => {
                   const r = await api.startRange(true)
@@ -871,7 +1021,7 @@ export default function App() {
               {t('Novo estudo neste local')}
             </button>
             <button
-              disabled={busy}
+              disabled={locked}
               onClick={() =>
                 rangeAction(async () => {
                   const r = await api.startRange(false)
@@ -884,7 +1034,7 @@ export default function App() {
               {t('Continuar / ligar ADS-B')}
             </button>
             <button
-              disabled={busy}
+              disabled={locked}
               onClick={() =>
                 rangeAction(async () => {
                   const r = await api.resetRange()
@@ -927,6 +1077,7 @@ export default function App() {
             <p>{t('Guardada no volume Docker /data, só nesta máquina.')}</p>
           </div>
           <form className="config-form" onSubmit={saveCfg}>
+            <fieldset disabled={noControl}>
             <label>
               {t('Latitude')}
               <NumField
@@ -964,9 +1115,10 @@ export default function App() {
                 f: fmtNum(specEnd),
               })}
             </p>
-            <button disabled={busy} type="submit">
+            <button disabled={locked} type="submit">
               {t('Salvar configuração')}
             </button>
+            </fieldset>
           </form>
           <p className="hint">{status?.dongle_hint ? tApi(status.dongle_hint) : ''}</p>
         </section>
@@ -977,6 +1129,7 @@ export default function App() {
             <p>{t('Frequências e pontos no mapa (clique no mapa ADS-B para preencher lat/lon)')}</p>
           </div>
           <form className="marker-form" onSubmit={addMarker}>
+            <fieldset disabled={noControl}>
             <input
               placeholder={t('Título')}
               value={draftMarker.title}
@@ -1003,6 +1156,7 @@ export default function App() {
               onChange={(e) => setDraftMarker({ ...draftMarker, lon: e.target.value })}
             />
             <button type="submit">{t('Salvar marcador')}</button>
+            </fieldset>
           </form>
           <ul className="marker-list">
             {markers.map((m) => (
@@ -1020,6 +1174,7 @@ export default function App() {
                   {m.freq_mhz != null && (
                     <button
                       type="button"
+                      disabled={locked}
                       onClick={() => {
                         const f = m.freq_mhz!
                         const am = f >= 118 && f <= 137
@@ -1035,8 +1190,10 @@ export default function App() {
                   <button
                     type="button"
                     className="icon-btn"
+                    disabled={noControl}
                     aria-label={t('Apagar marcador {x}', { x: m.title })}
                     onClick={async () => {
+                      if (!canControl) return
                       await api.deleteMarker(m.id)
                       refreshMarkers()
                     }}

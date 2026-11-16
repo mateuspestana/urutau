@@ -42,6 +42,8 @@ export type StationConfig = {
   sat_auto?: boolean
   sat_min_el?: number
   sat_gain?: number
+  sat_pipeline?: 'auto' | '72k' | '80k'
+  rec_max_gb?: number
 }
 
 export type RangePoint = {
@@ -243,6 +245,91 @@ export type Agenda = {
   tle_fetched: number | null
 }
 
+export type ScheduleSegment = {
+  id: string
+  start: number
+  end: number
+  kind: string
+  label: string
+  priority: number
+  mode: string
+  ref: string
+  params: Record<string, unknown>
+  state: string
+  reason: string
+}
+
+export type ScheduleEntry = {
+  id: string
+  label: string
+  kind: 'mode' | 'audio'
+  mode: string
+  freq: number | null
+  freqs: number[] | null
+  gain: number | null
+  repeat: 'once' | 'daily' | 'weekly'
+  days: number[]
+  date: string
+  start: string
+  end: string
+  enabled: boolean
+}
+
+export type ScheduleSkip = { ref: string; date: string }
+
+export type RecStatus = {
+  recording: boolean
+  name: string | null
+  label: string | null
+  started_at: number | null
+  sample_rate: number | null
+}
+
+export type Recording = {
+  name: string
+  bytes: number
+  mtime: number
+  sample_rate?: number
+  channels?: number
+  duration_s?: number
+  recording?: boolean
+  label?: string
+}
+
+export type ScheduleTimeline = {
+  hours: number
+  segments: ScheduleSegment[]
+  agenda: Agenda
+  entries: ScheduleEntry[]
+  skips: ScheduleSkip[]
+  recording: RecStatus
+}
+
+export type ScheduleEntryIn = {
+  label?: string
+  kind?: 'mode' | 'audio'
+  mode?: string
+  freq?: number | null
+  freqs?: number[] | null
+  gain?: number | null
+  repeat?: 'once' | 'daily' | 'weekly'
+  days?: number[]
+  date?: string
+  start?: string
+  end?: string
+  enabled?: boolean
+}
+
+export type SatLive = {
+  snr: number | null
+  snr_peak: number | null
+  snr_mean?: number | null
+  synced: boolean
+  elapsed: number
+  pipeline?: string
+  dir?: string
+}
+
 export type SatCapture = {
   dir: string
   sat?: string
@@ -253,6 +340,14 @@ export type SatCapture = {
   images: string[]
   image_count: number
   bytes: number
+  verdict?: string
+  snr_peak?: number | null
+  snr_mean?: number | null
+  sync_seconds?: number
+  locked?: boolean
+  elapsed?: number
+  ended_at?: number
+  pipeline_used?: string
 }
 
 export type Rds = {
@@ -276,16 +371,122 @@ export type Rds = {
 
 export type SpectrumPoint = { hz: number; mhz: number; db: number }
 
+export type HealthDongle = {
+  bus_path: string
+  id_vendor: string
+  id_product: string
+  product: string
+  serial: string
+}
+
+export type HealthWarning = {
+  level: 'critical' | 'warn' | 'info'
+  code: string
+  message: string
+  hint?: string
+}
+
+export type NoiseBand = {
+  name: string
+  label?: string
+  start: number
+  end: number
+  bin_khz?: number
+  noise_db: number | null
+  p10?: number | null
+  peak_db?: number | null
+  peak_mhz?: number | null
+}
+
+export type NoiseMeasurement = {
+  ts: number
+  antenna_label: string
+  gain?: number
+  bands: NoiseBand[]
+}
+
+export type NoiseDelta = {
+  name: string
+  label?: string
+  start?: number
+  end?: number
+  noise_db: number | null
+  baseline_db: number | null
+  delta_db: number | null
+}
+
+export type Diagnostics = {
+  ts: number
+  warnings: HealthWarning[]
+  critical: boolean
+  dongles: HealthDongle[]
+  dvb_driver: boolean
+  containers: {
+    ultrafeeder: { running: boolean; status: string; error?: string }
+    radiosonde: { running: boolean; status: string }
+  }
+  disk: {
+    total_bytes?: number
+    used_bytes?: number
+    free_bytes?: number
+    used_pct?: number
+    error?: string
+  }
+  paths: Record<string, number>
+  data_bytes: number
+  tle_age_s: number | null
+  range_max_km: number | null
+  last_mode: { ts?: number; detail?: string } | null
+  mode: string
+  uptime_s: number
+  noise_count: number
+  noise_latest: NoiseMeasurement | null
+  ppm_hint: string
+}
+
+export type AuthRole = 'admin' | 'viewer' | null
+
+export type AuthMe = { auth_required: boolean; role: AuthRole }
+
+/** Disparado quando qualquer fetch da API recebe 401 (sessão expirada ou sem cookie). */
+export class AuthRequiredError extends Error {
+  constructor(path: string) {
+    super(`401 ${path}`)
+    this.name = 'AuthRequiredError'
+  }
+}
+
+const AUTH_EVENT = 'urutau:auth-required'
+
+export function onAuthRequired(handler: () => void): () => void {
+  const fn = () => handler()
+  window.addEventListener(AUTH_EVENT, fn)
+  return () => window.removeEventListener(AUTH_EVENT, fn)
+}
+
 async function j<T>(path: string, init?: RequestInit): Promise<T> {
   const r = await fetch(path, {
+    credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) },
     ...init,
   })
+  if (r.status === 401 && !path.startsWith('/api/auth/')) {
+    window.dispatchEvent(new Event(AUTH_EVENT))
+    throw new AuthRequiredError(path)
+  }
   if (!r.ok) throw new Error(`${r.status} ${path}`)
+  if (r.status === 204) return undefined as T
   return r.json() as Promise<T>
 }
 
 export const api = {
+  authMe: () => j<AuthMe>('/api/auth/me'),
+  authLogin: (password: string) =>
+    j<AuthMe & { ok: boolean }>('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ password }),
+    }),
+  authLogout: () => j<{ ok: boolean }>('/api/auth/logout', { method: 'POST' }),
   status: () => j<StationStatus>('/api/status'),
   setMode: (body: { mode: string; freq_mhz?: number; gain?: number; freqs?: number[]; sat?: string; duration?: number }) =>
     j<{ ok: boolean; status: StationStatus; error?: string }>('/api/mode', {
@@ -334,9 +535,44 @@ export const api = {
   obsStats: (src: ObsSource) => j<ObsStats>(`/api/obs/${src}/stats`),
   rds: () => j<{ rds: Rds; log: string[] }>('/api/rds'),
   satPasses: (refresh = false) =>
-    j<{ passes: SatPass[]; sats: SatInfo[]; agenda: Agenda; log: string[] }>(`/api/sat/passes${refresh ? '?refresh=true' : ''}`),
+    j<{ passes: SatPass[]; sats: SatInfo[]; agenda: Agenda; log: string[]; live: SatLive | null }>(
+      `/api/sat/passes${refresh ? '?refresh=true' : ''}`,
+    ),
   satCaptures: () => j<SatCapture[]>('/api/sat/captures'),
+  satDeleteCapture: (dir: string) =>
+    j<{ ok: boolean }>(`/api/sat/captures/${encodeURIComponent(dir)}`, { method: 'DELETE' }),
+  satPruneEmpty: () => j<{ ok: boolean; removed: number }>('/api/sat/captures/prune-empty', { method: 'POST' }),
   trail: (hex: string) => j<{ sighting_id: number | null; points: TrailPt[] }>(`/api/adsb/trail/${hex}`),
+  diagnostics: () => j<Diagnostics>('/api/diagnostics'),
+  diagnosticsNoise: (body: { antenna_label?: string; gain?: number }) =>
+    j<{
+      ok: boolean
+      measurement: NoiseMeasurement
+      delta_vs_previous: NoiseDelta[] | null
+      status: StationStatus
+    }>('/api/diagnostics/noise', { method: 'POST', body: JSON.stringify(body) }),
+  diagnosticsNoiseHistory: () =>
+    j<{ measurements: NoiseMeasurement[]; count: number }>('/api/diagnostics/noise'),
+  scheduleTimeline: (hours = 48) => j<ScheduleTimeline>(`/api/schedule/timeline?hours=${hours}`),
+  scheduleEntries: () => j<ScheduleEntry[]>('/api/schedule/entries'),
+  scheduleAdd: (body: ScheduleEntryIn) =>
+    j<ScheduleEntry>('/api/schedule/entries', { method: 'POST', body: JSON.stringify(body) }),
+  scheduleUpdate: (id: string, body: ScheduleEntryIn) =>
+    j<ScheduleEntry>(`/api/schedule/entries/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
+  scheduleDelete: (id: string) =>
+    j<{ ok: boolean }>(`/api/schedule/entries/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  scheduleSkip: (ref: string, date = '') =>
+    j<ScheduleSkip>('/api/schedule/skip', {
+      method: 'POST',
+      body: JSON.stringify({ ref, date }),
+    }),
+  recList: () =>
+    j<{ recordings: Recording[]; status: RecStatus; rec_max_gb: number }>('/api/rec'),
+  recDelete: (name: string) =>
+    j<{ ok: boolean }>(`/api/rec/${encodeURIComponent(name)}`, { method: 'DELETE' }),
 }
 
 export type Aircraft = {

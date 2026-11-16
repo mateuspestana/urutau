@@ -34,9 +34,9 @@ O projeto se destina a quem quer observar o próprio espaço aéreo e marítimo 
 | [APRS](#aprs) | Posições, dados meteorológicos e mensagens de radioamadores | 144–146 MHz |
 | [Radiossondas](#radiossondas) | Balões meteorológicos com altitude, temperatura, umidade e trajetória | 400–406 MHz |
 | [Sensores ISM](#sensores-ism-433-mhz) | Estações meteorológicas, termômetros e outros sensores sem fio | 433,92 MHz |
-| [Satélites](#imagens-de-satélite-meteor-m) | Imagens dos satélites Meteor-M e agenda de passagens | 137,9 MHz |
+| [Satélites](#imagens-de-satélite-meteor-m) | Imagens dos satélites Meteor-M, veredito e SNR por passagem | 137,9 MHz |
 
-Além dos receptores, o painel oferece [registro de aeronaves](#registro-de-aeronaves), [estudo de alcance](#estudo-de-alcance), [gráficos de desempenho](#gráficos), [marcadores](#marcadores) e interface em [cinco idiomas](#idiomas-e-aparência).
+Além dos receptores, o painel oferece [agenda](#agenda) (satélites, radiossondas, modos e gravação de áudio), [saúde](#saúde) do receptor e da antena, [registro de aeronaves](#registro-de-aeronaves), [estudo de alcance](#estudo-de-alcance), [gráficos de desempenho](#gráficos), [marcadores](#marcadores) e interface em [cinco idiomas](#idiomas-e-aparência).
 
 ### Painel e escala de sintonia
 
@@ -52,7 +52,7 @@ As aeronaves transmitem continuamente, em 1090 MHz, sua identificação, posiç�
 - alerta para códigos de emergência (7500, 7600 e 7700);
 - anéis de distância, rótulos e modo de acompanhamento de uma aeronave selecionada.
 
-O mapa completo do tar1090 continua disponível em `http://localhost:8089`.
+O mapa completo do tar1090 continua disponível em `http://localhost:8089` (proxy pelo painel; com senha ligada, vale o mesmo cookie da sessão).
 
 ### Rádio FM e RDS
 
@@ -92,7 +92,7 @@ O APRS é a rede de radioamadores para posições, dados meteorológicos e mensa
 
 #### Radiossondas
 
-Radiossondas são balões meteorológicos lançados duas vezes por dia, por volta de 00Z e 12Z, que transmitem posição, altitude, temperatura, umidade e pressão até estourarem a mais de 30 km de altitude. O Urutau executa o [radiosonde_auto_rx](https://github.com/projecthorus/radiosonde_auto_rx) em um container próprio e mostra no mapa cada sonda com a sua trajetória. Uma agenda opcional liga a busca automaticamente nas janelas de lançamento. O envio público de dados ao SondeHub permanece desligado.
+Radiossondas são balões meteorológicos lançados duas vezes por dia, por volta de 00Z e 12Z, que transmitem posição, altitude, temperatura, umidade e pressão até estourarem a mais de 30 km de altitude. O Urutau executa o [radiosonde_auto_rx](https://github.com/projecthorus/radiosonde_auto_rx) em um container próprio e mostra no mapa cada sonda com a sua trajetória. A [agenda](#agenda) pode ligar a busca automaticamente nas janelas de lançamento; se uma passagem de satélite coincidir, o satélite preempta a sonda e a sonda retoma depois. O envio público de dados ao SondeHub permanece desligado.
 
 #### Sensores ISM (433 MHz)
 
@@ -100,7 +100,19 @@ Na faixa ISM de 433,92 MHz operam estações meteorológicas domésticas, termô
 
 #### Imagens de satélite (Meteor-M)
 
-Os satélites meteorológicos russos Meteor-M transmitem imagens da Terra em tempo real no formato LRPT, em 137,9 MHz. O Urutau calcula as passagens das próximas 48 horas a partir das órbitas publicadas pelo CelesTrak, com horário, duração, elevação máxima e trajetória. As capturas são decodificadas pelo [SatDump](https://github.com/SatDump/SatDump) e ficam disponíveis no próprio painel. Uma agenda opcional captura automaticamente toda passagem acima de uma elevação mínima e devolve o receptor ao modo anterior ao final. Uma antena externa com visão desobstruída do céu (dipolo em V ou QFH) é necessária para obter imagens.
+Os satélites meteorológicos russos Meteor-M transmitem imagens da Terra em tempo real no formato LRPT, em 137,9 MHz. O Urutau calcula as passagens das próximas 48 horas a partir das órbitas publicadas pelo CelesTrak, com horário, duração, elevação máxima e trajetória. As capturas são decodificadas pelo [SatDump](https://github.com/SatDump/SatDump) e ficam disponíveis no próprio painel. Durante a passagem aparecem SNR ao vivo e pico; ao terminar, cada captura recebe um veredito:
+
+| Veredito | Significado |
+|---|---|
+| imagem ok | a passagem gerou imagem |
+| sinal fraco | o sinal chegou perto; uma antena externa deve bastar |
+| sem sinal | o sinal nunca apareceu acima do ruído |
+| interrompida | captura curta demais para avaliar |
+| travou sem imagem | o decodificador sincronizou, mas não saiu imagem |
+
+O pipeline LRPT padrão é **auto**: começa em 72k e, se após cerca de dois minutos houver SNR alto sem sincronismo, troca para 80k pelo restante da passagem. Capturas vazias podem ser apagadas pelo painel. A [agenda](#agenda) captura automaticamente toda passagem acima de uma elevação mínima e devolve o receptor ao modo anterior ao final.
+
+Para obter imagens, use antena externa com céu aberto. Um dipolo em V típico para 137 MHz tem braços de cerca de 53,4 cm, abertos a 120°, montados na horizontal com o eixo norte–sul (também serve uma QFH). Dentro de casa quase não sai imagem.
 
 <!-- Imagem de uma passagem Meteor capturada pela estação: a ser adicionada. -->
 
@@ -123,6 +135,14 @@ A aba Gráficos apresenta as séries históricas geradas pelo graphs1090: númer
 ### Marcadores
 
 Frequências e pontos geográficos de interesse podem ser salvos como marcadores. Marcadores de frequência são sintonizados com um clique; marcadores de posição aparecem no mapa.
+
+### Agenda
+
+A aba Agenda mostra quem pega o receptor nas próximas 48 horas: passagens de satélite, janelas de radiossonda e entradas suas (troca de modo ou gravação de áudio FM/airband em WAV no servidor). A prioridade é única → satélite → sonda → recorrente. Um satélite preempta uma sonda em curso e a devolve se a janela ainda estiver aberta. Os mesmos interruptores de captura automática de Meteor e de busca de sondas ficam nesta aba (e nas abas Satélites e Radiossondas há um atalho).
+
+### Saúde
+
+A aba Saúde reúne o diagnóstico do receptor e da antena: dongles USB detectados, avisos (driver de TV carregado, USB em uso, disco cheio, TLE antigo), status dos containers, uso de disco e uma medição de piso de ruído por faixa (FM, aeronáutica, Meteor, AIS, sondas, ISM e ADS-B). A medição pausa o ADS-B por cerca de um minuto e permite comparar antenas ou posições pelo delta em dB. O RTL-SDR Blog V4 tem TCXO (±1 ppm); calibração de PPM não é necessária.
 
 ### Idiomas e aparência
 
@@ -151,7 +171,7 @@ O instalador:
 
 1. verifica o Docker e o Docker Compose;
 2. procura o receptor e, se necessário, oferece bloquear o driver de TV digital do kernel (`dvb_usb_rtl28xxu`), que costuma ocupar o dispositivo;
-3. pergunta a localização da antena e quem pode abrir o painel: só esta máquina, a rede local e o Tailscale, ou só o Tailscale;
+3. pergunta a localização da antena e quem pode abrir o painel: só esta máquina, a rede local e o Tailscale, ou só o Tailscale (nas opções de rede, pergunta também a [senha do painel](#senha-do-painel));
 4. grava o arquivo `.env` e inicia os containers.
 
 Ao final, o painel fica disponível em **http://localhost:3090**. Para instalação não interativa:
@@ -176,9 +196,13 @@ Por padrão, o painel só abre no próprio computador. O instalador oferece trê
 | 2. Rede local e Tailscale | `0.0.0.0` | qualquer aparelho da rede local e da sua rede [Tailscale](https://tailscale.com) |
 | 3. Só Tailscale | IP `100.x.y.z` da máquina | apenas aparelhos da sua rede Tailscale |
 
-Com as opções 2 ou 3, abra `http://<endereço-da-estação>:3090` em outro aparelho (por exemplo, o nome ou o IP da máquina no Tailscale). Os links para o tar1090 e para os gráficos acompanham automaticamente o endereço usado. Na opção 3, o Tailscale precisa estar conectado antes de o Docker iniciar. Quem consegue abrir o painel também pode trocar o modo do receptor, e a API controla o Docker da máquina: libere o acesso apenas em redes de confiança.
+Com as opções 2 ou 3, abra `http://<endereço-da-estação>:3090` em outro aparelho (por exemplo, o nome ou o IP da máquina no Tailscale). Os links para o tar1090 e para os gráficos acompanham automaticamente o endereço usado e passam pelo mesmo proxy autenticado na porta `:8089`. A porta da API (`8000`) fica só em `127.0.0.1`. Na opção 3, o Tailscale precisa estar conectado antes de o Docker iniciar. Com senha ligada, só o admin troca o modo do receptor; a API controla o Docker da máquina: libere o acesso apenas em redes de confiança.
 
 Para trocar a opção depois, execute `./install.sh` novamente ou edite `URUTAU_BIND` no `.env` e rode `docker compose up -d`.
+
+### Senha do painel
+
+Quando o painel fica aberto na rede (opções 2 ou 3), o instalador pede uma senha de administrador e, opcionalmente, uma de visitante. Elas ficam no `.env` como `URUTAU_PASSWORD` (admin) e `URUTAU_VIEW_PASSWORD` (visitante, só leitura). Sem nenhuma das duas definidas, a autenticação fica desligada — aceitável com `URUTAU_BIND=127.0.0.1`. O admin troca modo, salva config e edita a agenda; o visitante vê mapas, tabelas, gráficos e pode ouvir o áudio. A sessão usa o cookie `urutau_session` (HttpOnly, SameSite=Lax, 30 dias) e vale também em `:8089` (tar1090 e gráficos). Em instalação local (opção 1) o instalador não pergunta; dá para definir as senhas depois no `.env` e reiniciar com `docker compose up -d`.
 
 ## Operação
 
@@ -188,13 +212,13 @@ Para trocar a opção depois, execute `./install.sh` novamente ou edite `URUTAU_
 | Iniciar novamente | `docker compose start` |
 | Atualizar | `git pull && ./install.sh` |
 | Ver os registros da API | `docker compose logs -f api` |
-| Documentação da API | http://localhost:8000/docs |
+| Documentação da API | http://localhost:3090/api/docs |
 
 A localização da antena pode ser alterada a qualquer momento na aba Config. Três casas decimais (cerca de 100 m) bastam para o estudo de alcance.
 
 ## Privacidade e conexões externas
 
-O painel é acessível apenas no próprio computador (`127.0.0.1`), a menos que o acesso pela rede local ou pelo Tailscale seja autorizado (veja [Acesso pela rede local e pelo Tailscale](#acesso-pela-rede-local-e-pelo-tailscale)). Nenhum dado de recepção é enviado a terceiros: o compartilhamento com redes de rastreamento (ADS-B Exchange, FlightAware e similares) e o envio de radiossondas ao SondeHub vêm desligados.
+O painel é acessível apenas no próprio computador (`127.0.0.1`), a menos que o acesso pela rede local ou pelo Tailscale seja autorizado (veja [Acesso pela rede local e pelo Tailscale](#acesso-pela-rede-local-e-pelo-tailscale)). Nenhum dado de recepção é enviado a terceiros: o compartilhamento com redes de rastreamento (ADS-B Exchange, FlightAware e similares) e o envio de radiossondas ao SondeHub vêm desligados. A autenticação, a agenda e a aba Saúde operam só na máquina; o cookie de sessão não gera conexão externa.
 
 O painel se conecta à internet apenas para obter informações que não podem ser geradas localmente:
 

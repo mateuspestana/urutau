@@ -5,6 +5,7 @@ import type { ObsStats, StationStatus } from './api'
 import { ago, fmtBytes } from './decoderUtil'
 import { Icon } from './Icon'
 import { t } from './i18n'
+import { useAuth } from './useAuth'
 
 type PanelProps = {
   title: string
@@ -25,6 +26,8 @@ type PanelProps = {
 
 /** Bloco padrão de um decodificador: campos, ligar/parar, contadores da sessão e saída do processo. */
 export function DecoderPanel(p: PanelProps) {
+  const { canControl } = useAuth()
+  const locked = p.busy || !canControl
   const running = p.status?.mode === p.mode
   const sess = p.stats?.session
   return (
@@ -35,11 +38,11 @@ export function DecoderPanel(p: PanelProps) {
       </div>
       {p.children ? <div className="dec-form">{p.children}</div> : null}
       <div className="row">
-        <button className="primary" disabled={p.busy} onClick={p.onStart}>
+        <button className="primary" disabled={locked} onClick={p.onStart}>
           <Icon name="play" /> {running ? t('Reiniciar') : p.startLabel}
         </button>
         {running && (
-          <button disabled={p.busy} onClick={p.onStop}>
+          <button disabled={locked} onClick={p.onStop}>
             <Icon name="stop" /> {t('Parar e voltar ao ADS-B')}
           </button>
         )}

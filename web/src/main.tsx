@@ -4,12 +4,15 @@ import '@fontsource-variable/instrument-sans'
 import '@fontsource-variable/jetbrains-mono'
 import App from './App.tsx'
 import { LangProvider } from './LangProvider'
+import { AuthProvider } from './useAuth'
 import './index.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <LangProvider>
-      <App />
+      <AuthProvider>
+        <App />
+      </AuthProvider>
     </LangProvider>
   </StrictMode>,
 )

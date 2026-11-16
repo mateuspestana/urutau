@@ -56,6 +56,8 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "sat_auto": False,
     "sat_min_el": 20.0,
     "sat_gain": 40.0,
+    "sat_pipeline": "auto",  # auto | 72k | 80k
+    "rec_max_gb": 2.0,  # gravações em /data/rec; apaga as mais antigas ao estourar
 }
 
 

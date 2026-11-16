@@ -2,7 +2,7 @@
 # Só configuração de ferramentas: a API roda no container (requirements.txt); os testes rodam fora dele.
 [project]
 name = "urutau-api"
-version = "0.1.6"
+version = "0.2.0"
 description = "Urutau — API da estação RTL-SDR caseira"
 requires-python = ">=3.11"
 license = "GPL-3.0-only"

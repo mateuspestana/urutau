@@ -7,6 +7,7 @@ import { NumField } from './NumField'
 import { useStored } from './useStored'
 import { fmtNum, locale, markApi, t, tn } from './i18n'
 import { ago } from './decoderUtil'
+import { useAuth } from './useAuth'
 
 type Source = 'acars' | 'vdl2'
 type Props = {
@@ -47,6 +48,8 @@ const fmtFreqs = (f: number[]) => f.map((x) => x.toFixed(3)).join(' ') // campo 
 const clock = (ts: number) => new Date(ts * 1000).toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 
 export function Datalink({ status, busy, visible, run }: Props) {
+  const { canControl } = useAuth()
+  const locked = busy || !canControl
   const [source, setSource] = useStored<Source>('dl-source', 'acars')
   const [text, setText] = useState<Record<Source, string>>({ acars: '', vdl2: '' })
   const [gain, setGain] = useState(40)
@@ -193,11 +196,11 @@ export function Datalink({ status, busy, visible, run }: Props) {
           ) : null}
         </p>
         <div className="row">
-          <button className="primary" disabled={busy || tooWide || !freqs.length} onClick={start}>
+          <button className="primary" disabled={locked || tooWide || !freqs.length} onClick={start}>
             <Icon name="play" /> {mode === source ? t('Reiniciar {x}', { x: t(INFO[source].title) }) : t('Decodificar {x}', { x: t(INFO[source].title) })}
           </button>
           {running && (
-            <button disabled={busy} onClick={() => run('adsb', {})}>
+            <button disabled={locked} onClick={() => run('adsb', {})}>
               <Icon name="stop" /> {t('Parar e voltar ao ADS-B')}
             </button>
           )}

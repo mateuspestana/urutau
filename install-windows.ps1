@@ -97,5 +97,12 @@ fi
 [ -d "$HOME/urutau" ] || git clone https://github.com/mateuspestana/urutau.git "$HOME/urutau"
 cd "$HOME/urutau" && git pull --ff-only && ./install.sh
 '@
-wsl.exe @wslArgs -e env "URUTAU_LANG=$Lang" bash -lc $script
+# repassa senhas/BIND do ambiente Windows para o install.sh no WSL, se existirem
+$envPass = @("URUTAU_LANG=$Lang")
+foreach ($k in @("URUTAU_PASSWORD", "URUTAU_VIEW_PASSWORD", "URUTAU_BIND", "URUTAU_LAT", "URUTAU_LON")) {
+  $v = [Environment]::GetEnvironmentVariable($k, "Process")
+  if (-not $v) { $v = [Environment]::GetEnvironmentVariable($k, "User") }
+  if ($v) { $envPass += "$k=$v" }
+}
+wsl.exe @wslArgs -e env @envPass bash -lc $script
 if ($LASTEXITCODE -eq 0) { Write-Host "`n$(T 'done')`n" }

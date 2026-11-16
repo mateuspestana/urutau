@@ -2,6 +2,20 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); as versões seguem o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [0.2.0] - 2026-11-16
+
+### Adicionado
+
+- Senha do painel (`URUTAU_PASSWORD` / `URUTAU_VIEW_PASSWORD`): papéis admin e visitante; autenticação desligada se nenhuma senha estiver definida. A API passa a escutar só em `127.0.0.1:8000`; o tar1090 e os gráficos ficam atrás da mesma sessão na porta `:8089` via nginx do painel. O instalador pergunta as senhas nas opções de acesso pela rede.
+- Captura de satélite: veredito por passagem (imagem ok, sinal fraco, sem sinal, interrompida, travou sem imagem), SNR ao vivo e médio, pipeline LRPT automático (72k → 80k se preciso) e remoção de capturas vazias.
+- Agenda unificada: satélites, radiossondas e entradas próprias na mesma linha do tempo; satélite preempta sonda e a devolve se a janela ainda estiver aberta; gravação de áudio em WAV no servidor.
+- Aba Saúde: diagnóstico do receptor e da antena, avisos e medição de piso de ruído por faixa para comparar antenas.
+
+### Corrigido
+
+- O log e o SNR de uma captura de satélite não “herdam” mais valores de passagens anteriores.
+- Uma janela de radiossonda deixa de bloquear passagens Meteor: o satélite preempta a sonda e a sonda retoma depois, se a janela ainda estiver aberta.
+
 ## [0.1.6] - 2026-11-15
 
 ### Corrigido
@@ -59,6 +73,7 @@ Primeira versão pública.
 - Sem envio de dados a redes de rastreamento nem ao SondeHub; fontes distribuídas com o software.
 - A localização da antena é opcional e fica apenas no `.env` e no volume local.
 
+[0.2.0]: https://github.com/mateuspestana/urutau/releases/tag/v0.2.0
 [0.1.6]: https://github.com/mateuspestana/urutau/releases/tag/v0.1.6
 [0.1.5]: https://github.com/mateuspestana/urutau/releases/tag/v0.1.5
 [0.1.4]: https://github.com/mateuspestana/urutau/releases/tag/v0.1.4

@@ -2,7 +2,7 @@
 import asyncio
 from datetime import UTC, datetime
 
-from app import sats, sdr
+from app import sats, schedule, sdr
 
 # TLEs reais de 13/11/2026 (época 26317); o cálculo começa perto da época para não depender da data de hoje
 TLE = {
@@ -50,10 +50,15 @@ def _run_tick(monkeypatch, mode):
         calls.append((m, kw.get("origin")))
         return True, ""
 
-    monkeypatch.setattr(sats.modes, "apply", fake_apply)
-    sats.job.clear()
-    sats.suppressed.clear()
-    sats.job.update(mode="sat", until=9e12, prev="adsb", label="teste")
+    # a agenda mora em schedule; sats._tick só delega
+    monkeypatch.setattr(schedule.modes, "apply", fake_apply)
+    monkeypatch.setattr(schedule.store, "load_config", lambda: {
+        "sat_auto": False, "sonde_auto": False, "sonde_windows": [], "sat_min_el": 20,
+    })
+    schedule.job.clear()
+    schedule.suppressed.clear()
+    schedule.job.update(mode="sat", until=9e12, prev="adsb", label="teste",
+                        priority=1, seg_id="sat:x", kind="sat", params={})
     monkeypatch.setattr(sdr.state, "mode", mode)
     asyncio.run(sats._tick())
     return calls

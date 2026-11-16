@@ -10,6 +10,7 @@ import { NumField } from './NumField'
 import { ObjectMap } from './ObjectMap'
 import type { MapItem } from './ObjectMap'
 import { fmtNum, markApi, t } from './i18n'
+import { useAuth } from './useAuth'
 
 type Props = {
   status: StationStatus | null
@@ -18,6 +19,7 @@ type Props = {
   center: [number, number]
   run: (mode: string, opts: { gain?: number }) => Promise<void>
   flash: (msg: string) => void
+  goto?: (tab: string) => void
 }
 
 const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : null)
@@ -43,7 +45,8 @@ const LABELS: Record<string, string> = {
   bt: markApi('Burst timer'),
 }
 
-export function Sondes({ status, busy, visible, center, run, flash }: Props) {
+export function Sondes({ status, busy, visible, center, run, flash, goto }: Props) {
+  const { canControl } = useAuth()
   const running = status?.mode === 'sonde'
   const { objects, stats } = useObs('sonde', { visible, running, sinceH: 24 * 7 })
   const [gain, setGain] = useState(40)
@@ -68,6 +71,7 @@ export function Sondes({ status, busy, visible, center, run, flash }: Props) {
   }, [sel, objects])
 
   const saveAuto = async (on: boolean) => {
+    if (!canControl) return
     const list = windows.split(/[\s,;]+/).filter((w) => /^\d{1,2}:\d{2}-\d{1,2}:\d{2}$/.test(w))
     try {
       await api.saveConfig({ sonde_auto: on, sonde_windows: list })
@@ -115,7 +119,7 @@ export function Sondes({ status, busy, visible, center, run, flash }: Props) {
           <>
             <div className="row">
               <label className="check">
-                <input type="checkbox" checked={auto} onChange={(e) => saveAuto(e.target.checked)} />
+                <input type="checkbox" disabled={!canControl} checked={auto} onChange={(e) => saveAuto(e.target.checked)} />
                 {t('Ligar sozinho nas janelas de lançamento')}
               </label>
               <input
@@ -132,7 +136,19 @@ export function Sondes({ status, busy, visible, center, run, flash }: Props) {
                 </a>
               )}
             </div>
-            <p className="hint">{t('A agenda só assume o dongle se ele estiver em ADS-B ou livre, e devolve o ADS-B no fim da janela.')}</p>
+            <p className="hint">
+              {t('A agenda só assume o dongle se ele estiver em ADS-B ou livre, e devolve o ADS-B no fim da janela.')}{' '}
+              <a
+                href="#agenda"
+                onClick={(e) => {
+                  e.preventDefault()
+                  if (goto) goto('agenda')
+                  else location.hash = '#agenda'
+                }}
+              >
+                {t('gerenciar na Agenda')}
+              </a>
+            </p>
           </>
         }
       >

@@ -16,14 +16,18 @@ from pydantic import BaseModel, Field
 from . import (
     __version__,
     aircraftdb,
+    auth,
     datalink,
     decoders,
     flightlog,
+    health,
     modes,
     obs,
     range_study,
+    rec,
     report_html,
     sats,
+    schedule,
     sdr,
     store,
 )
@@ -39,11 +43,12 @@ async def lifespan(_app: FastAPI):
     range_study.start_background()
     restore = asyncio.create_task(modes.restore())  # volta ao último modo escolhido
     guard = asyncio.create_task(sdr.guard_loop())
-    agenda = asyncio.create_task(sats.scheduler_loop())
+    agenda = asyncio.create_task(schedule.scheduler_loop())
     yield
     restore.cancel()
     guard.cancel()
     agenda.cancel()
+    await rec.stop()
     await sdr.stop_proc()  # não deixa o container da sonda órfão
     range_study.study.save()
     flightlog.log_event("api_stop")
@@ -52,7 +57,13 @@ async def lifespan(_app: FastAPI):
     obs.close()
 
 
-app = FastAPI(title="Urutau API", version=__version__, lifespan=lifespan)
+app = FastAPI(
+    title="Urutau API",
+    version=__version__,
+    lifespan=lifespan,
+    docs_url="/api/docs",
+    openapi_url="/api/openapi.json",
+)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -60,6 +71,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(auth.AuthMiddleware)
+app.include_router(auth.router)
 
 
 class ModeRequest(BaseModel):
@@ -118,11 +131,35 @@ class ConfigIn(BaseModel):
     sat_auto: bool | None = None
     sat_min_el: float | None = None
     sat_gain: float | None = None
+    sat_pipeline: str | None = None
+    rec_max_gb: float | None = None
 
 
 @app.get("/api/health")
-async def health() -> dict[str, str]:
+async def health_ok() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/api/diagnostics")
+async def diagnostics() -> dict[str, Any]:
+    return health.diagnostics()
+
+
+class NoiseRequest(BaseModel):
+    antenna_label: str = ""
+    gain: float | None = None
+
+
+@app.post("/api/diagnostics/noise")
+async def diagnostics_noise(body: NoiseRequest) -> dict[str, Any]:
+    flightlog.log_event("mode", f"noise-floor ({body.antenna_label or 'sem rótulo'})")
+    return await health.measure_noise(body.antenna_label, body.gain)
+
+
+@app.get("/api/diagnostics/noise")
+async def diagnostics_noise_history() -> dict[str, Any]:
+    items = health.load_noise_history()
+    return {"measurements": items, "count": len(items)}
 
 
 @app.get("/api/status")
@@ -132,9 +169,10 @@ async def status() -> dict[str, Any]:
 
 @app.post("/api/mode")
 async def set_mode(body: ModeRequest) -> dict[str, Any]:
-    if sats.job and body.mode != sats.job.get("mode"):
-        sats.suppressed[sats.job["mode"]] = sats.job["until"]  # o usuário assumiu: a agenda não retoma
-        sats.job.clear()
+    had_job = bool(schedule.job)
+    schedule.on_manual_mode_change(body.mode)  # se a agenda tinha tarefa, suprime até o fim da janela
+    if had_job:
+        await rec.stop()
     ok, err = await modes.apply(body.mode, body.freq_mhz, body.gain, body.freqs,
                                 {"sat": body.sat, "duration": body.duration})
     return {"ok": ok, "error": err or None, "status": sdr.status()}
@@ -403,12 +441,27 @@ async def rds() -> dict[str, Any]:
 @app.get("/api/sat/passes")
 async def sat_passes(refresh: bool = False) -> dict[str, Any]:
     items = await sats.passes(force=refresh)
-    return {"passes": items, "sats": sats.SATS, "agenda": sats.agenda_status(), "log": list(decoders.log["sat"])}
+    return {"passes": items, "sats": sats.SATS, "agenda": sats.agenda_status(),
+            "log": list(decoders.log["sat"]), "live": sats.live_status()}
 
 
 @app.get("/api/sat/captures")
 async def sat_captures() -> list[dict[str, Any]]:
     return await asyncio.to_thread(sats.captures)
+
+
+@app.delete("/api/sat/captures/{dirname}")
+async def sat_capture_delete(dirname: str) -> dict[str, Any]:
+    ok, err = await asyncio.to_thread(sats.delete_capture, dirname)
+    if not ok:
+        raise HTTPException(400, err or "não apagou")
+    return {"ok": True}
+
+
+@app.post("/api/sat/captures/prune-empty")
+async def sat_captures_prune() -> dict[str, Any]:
+    n = await asyncio.to_thread(sats.delete_empty_captures)
+    return {"ok": True, "removed": n}
 
 
 @app.get("/api/sat/file/{rel:path}")
@@ -419,12 +472,107 @@ async def sat_file(rel: str) -> Any:
     return FileResponse(p)
 
 
+# ---------- agenda unificada ----------
+
+class ScheduleEntryIn(BaseModel):
+    label: str = ""
+    kind: str = "mode"  # mode | audio
+    mode: str = "fm"
+    freq: float | None = None
+    freqs: list[float] | None = None
+    gain: float | None = None
+    repeat: str = "once"  # once | daily | weekly
+    days: list[int] = Field(default_factory=list)
+    date: str = ""
+    start: str = "00:00"
+    end: str = "00:30"
+    enabled: bool = True
+
+
+class ScheduleSkipIn(BaseModel):
+    ref: str
+    date: str = ""
+
+
+@app.get("/api/schedule/timeline")
+async def schedule_timeline(hours: float = 48.0) -> dict[str, Any]:
+    hours = max(1.0, min(float(hours), 168.0))
+    cfg = store.load_config()
+    passes = await sats.passes() if cfg.get("sat_auto") else []
+    return {
+        "hours": hours,
+        "segments": schedule.timeline(hours=hours, passes=passes),
+        "agenda": schedule.agenda_status() | {"tle_fetched": sats.agenda_status().get("tle_fetched")},
+        "entries": schedule.list_entries(),
+        "skips": schedule.list_skips(),
+        "recording": rec.status(),
+    }
+
+
+@app.get("/api/schedule/entries")
+async def schedule_entries() -> list[dict[str, Any]]:
+    return schedule.list_entries()
+
+
+@app.post("/api/schedule/entries")
+async def schedule_entry_create(body: ScheduleEntryIn) -> dict[str, Any]:
+    return schedule.add_entry(body.model_dump())
+
+
+@app.put("/api/schedule/entries/{entry_id}")
+async def schedule_entry_update(entry_id: str, body: ScheduleEntryIn) -> dict[str, Any]:
+    item = schedule.update_entry(entry_id, body.model_dump())
+    if not item:
+        raise HTTPException(404, "entrada não encontrada")
+    return item
+
+
+@app.delete("/api/schedule/entries/{entry_id}")
+async def schedule_entry_delete(entry_id: str) -> dict[str, bool]:
+    if not schedule.delete_entry(entry_id):
+        raise HTTPException(404, "entrada não encontrada")
+    return {"ok": True}
+
+
+@app.post("/api/schedule/skip")
+async def schedule_skip(body: ScheduleSkipIn) -> dict[str, Any]:
+    return schedule.add_skip(body.ref, body.date)
+
+
+@app.get("/api/rec")
+async def rec_list() -> dict[str, Any]:
+    return {"recordings": rec.list_recordings(), "status": rec.status(),
+            "rec_max_gb": store.load_config().get("rec_max_gb", 2.0)}
+
+
+@app.get("/api/rec/{name}")
+async def rec_get(name: str) -> Any:
+    p = rec.safe_path(name)
+    if not p:
+        raise HTTPException(404, "gravação não encontrada")
+    # FileResponse do Starlette já responde a Range
+    return FileResponse(p, media_type="audio/wav", filename=p.name)
+
+
+@app.delete("/api/rec/{name}")
+async def rec_delete(name: str) -> dict[str, Any]:
+    ok, err = rec.delete(name)
+    if not ok:
+        raise HTTPException(400, err or "não apagou")
+    return {"ok": True}
+
+
 @app.websocket("/api/ws/audio")
 async def ws_audio(ws: WebSocket) -> None:
     """PCM s16le mono. Primeiro um JSON `hello` com o sample rate, depois bytes.
 
     Cada conexão tem a própria fila. Uma tarefa separada só escuta o cliente: quando ele fecha (ou manda
-    "bye"), o envio para. Antes a desconexão era engolida e o servidor seguia enviando até estourar."""
+    "bye"), o envio para. Antes a desconexão era engolida e o servidor seguia enviando até estourar.
+    Viewer pode ouvir; sem cookie válido (auth ligada) fecha com 4401 antes do accept."""
+    if auth.auth_required():
+        role = await auth.reject_ws_if_unauthorized(ws)
+        if role is None:
+            return
     await ws.accept()
     q: asyncio.Queue = asyncio.Queue(maxsize=64)
     sdr.state.audio_queues.add(q)

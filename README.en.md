@@ -32,9 +32,9 @@ The project is meant for anyone who wants to observe their own airspace and wate
 | [APRS](#aprs) | Positions, weather data and messages from radio amateurs | 144–146 MHz |
 | [Radiosondes](#radiosondes) | Weather balloons with altitude, temperature, humidity and trajectory | 400–406 MHz |
 | [ISM sensors](#ism-sensors-433-mhz) | Weather stations, thermometers and other wireless sensors | 433.92 MHz |
-| [Satellites](#satellite-images-meteor-m) | Meteor-M satellite images and pass schedule | 137.9 MHz |
+| [Satellites](#satellite-images-meteor-m) | Meteor-M satellite images, verdict and SNR per pass | 137.9 MHz |
 
-Beyond the receivers, the panel offers an [aircraft log](#aircraft-log), a [range study](#range-study), [performance graphs](#graphs), [markers](#markers) and an interface in [five languages](#languages-and-appearance).
+Beyond the receivers, the panel offers a [schedule](#schedule) (satellites, radiosondes, modes and audio recording), [health](#health) checks for the receiver and antenna, an [aircraft log](#aircraft-log), a [range study](#range-study), [performance graphs](#graphs), [markers](#markers) and an interface in [five languages](#languages-and-appearance).
 
 ### Panel and tuning scale
 
@@ -50,7 +50,7 @@ Aircraft continuously broadcast their identification, position, altitude and spe
 - alerts for emergency squawks (7500, 7600 and 7700);
 - range rings, labels and a follow mode for the selected aircraft.
 
-The full tar1090 map remains available at `http://localhost:8089`.
+The full tar1090 map remains available at `http://localhost:8089` (proxied by the panel; with a password set, the same session cookie applies).
 
 ### FM radio and RDS
 
@@ -90,7 +90,7 @@ APRS is the radio amateur network for positions, weather data and short messages
 
 #### Radiosondes
 
-Radiosondes are weather balloons launched twice a day, around 00Z and 12Z, that transmit position, altitude, temperature, humidity and pressure until they burst above 30 km. Urutau runs [radiosonde_auto_rx](https://github.com/projecthorus/radiosonde_auto_rx) in its own container and maps each sonde with its trajectory. An optional schedule starts the search automatically during launch windows. Public upload to SondeHub stays off.
+Radiosondes are weather balloons launched twice a day, around 00Z and 12Z, that transmit position, altitude, temperature, humidity and pressure until they burst above 30 km. Urutau runs [radiosonde_auto_rx](https://github.com/projecthorus/radiosonde_auto_rx) in its own container and maps each sonde with its trajectory. The [schedule](#schedule) can start the search automatically during launch windows; if a satellite pass overlaps, the satellite preempts the sonde and the sonde resumes afterwards. Public upload to SondeHub stays off.
 
 #### ISM sensors (433 MHz)
 
@@ -98,7 +98,19 @@ The 433.92 MHz ISM band carries home weather stations, thermometers, tyre pressu
 
 #### Satellite images (Meteor-M)
 
-The Russian Meteor-M weather satellites transmit live images of the Earth in LRPT format on 137.9 MHz. Urutau computes the passes for the next 48 hours from the orbits published by CelesTrak, with time, duration, maximum elevation and path. Captures are decoded by [SatDump](https://github.com/SatDump/SatDump) and shown in the panel. An optional schedule automatically captures every pass above a minimum elevation and returns the receiver to the previous mode afterwards. An outdoor antenna with a clear view of the sky (V-dipole or QFH) is needed to obtain images.
+The Russian Meteor-M weather satellites transmit live images of the Earth in LRPT format on 137.9 MHz. Urutau computes the passes for the next 48 hours from the orbits published by CelesTrak, with time, duration, maximum elevation and path. Captures are decoded by [SatDump](https://github.com/SatDump/SatDump) and shown in the panel. During the pass you see live and peak SNR; when it ends, each capture gets a verdict:
+
+| Verdict | Meaning |
+|---|---|
+| image ok | the pass produced an image |
+| weak signal | the signal came close; an outdoor antenna should be enough |
+| no signal | the signal never rose above the noise |
+| interrupted | capture too short to judge |
+| locked, no image | the decoder locked, but no image came out |
+
+The default LRPT pipeline is **auto**: it starts at 72k and, if after about two minutes SNR is high without sync, switches to 80k for the rest of the pass. Empty captures can be deleted from the panel. The [schedule](#schedule) automatically captures every pass above a minimum elevation and returns the receiver to the previous mode afterwards.
+
+To get images, use an outdoor antenna with open sky. A typical V-dipole for 137 MHz has arms of about 53.4 cm, opened to 120°, mounted horizontally with a north–south axis (a QFH also works). Indoors you will rarely get an image.
 
 <!-- Image from a Meteor pass captured by the station: to be added. -->
 
@@ -121,6 +133,14 @@ The Graphs tab shows the historical series produced by graphs1090: aircraft coun
 ### Markers
 
 Frequencies and geographic points of interest can be saved as markers. Frequency markers are tuned with one click; position markers appear on the map.
+
+### Schedule
+
+The Schedule tab shows who gets the receiver over the next 48 hours: satellite passes, radiosonde windows and your own entries (mode changes or FM/airband audio recording as WAV on the server). Priority is one-off → satellite → sonde → recurring. A satellite preempts a running sonde and restores it if the window is still open. The same Meteor auto-capture and sonde-search switches live on this tab (with a shortcut from the Satellites and Radiosondes tabs).
+
+### Health
+
+The Health tab gathers receiver and antenna diagnostics: detected USB dongles, warnings (TV driver loaded, USB in use, disk full, stale TLE), container status, disk use and a noise-floor measurement per band (FM, airband, Meteor, AIS, sondes, ISM and ADS-B). Measuring pauses ADS-B for about a minute and lets you compare antennas or placements by the delta in dB. The RTL-SDR Blog V4 has a TCXO (±1 ppm); PPM calibration is not needed.
 
 ### Languages and appearance
 
@@ -149,7 +169,7 @@ The installer:
 
 1. checks Docker and Docker Compose;
 2. looks for the receiver and, if needed, offers to blacklist the kernel’s digital TV driver (`dvb_usb_rtl28xxu`), which often claims the device;
-3. asks for the antenna location and who may open the panel: this machine only, the local network and Tailscale, or Tailscale only;
+3. asks for the antenna location and who may open the panel: this machine only, the local network and Tailscale, or Tailscale only (on the network options it also asks for the [panel password](#panel-password));
 4. writes the `.env` file and starts the containers.
 
 When it finishes, the panel is available at **http://localhost:3090**. For an unattended installation:
@@ -174,9 +194,13 @@ By default, the panel only opens on the computer itself. The installer offers th
 | 2. Local network and Tailscale | `0.0.0.0` | any device on the local network and on your [Tailscale](https://tailscale.com) network |
 | 3. Tailscale only | the machine’s `100.x.y.z` IP | only devices on your Tailscale network |
 
-With options 2 or 3, open `http://<station-address>:3090` on another device (for example, the machine’s Tailscale name or IP). Links to tar1090 and to the graphs automatically follow the address in use. With option 3, Tailscale must be connected before Docker starts. Anyone who can open the panel can also change the receiver mode, and the API controls the machine’s Docker: only allow access on trusted networks.
+With options 2 or 3, open `http://<station-address>:3090` on another device (for example, the machine’s Tailscale name or IP). Links to tar1090 and to the graphs automatically follow the address in use and go through the same authenticated proxy on port `:8089`. The API port (`8000`) listens only on `127.0.0.1`. With option 3, Tailscale must be connected before Docker starts. With a password set, only the admin can change the receiver mode; the API controls the machine’s Docker: only allow access on trusted networks.
 
 To change the option later, run `./install.sh` again, or edit `URUTAU_BIND` in `.env` and run `docker compose up -d`.
+
+### Panel password
+
+When the panel is open on the network (options 2 or 3), the installer asks for an administrator password and, optionally, a viewer password. They are stored in `.env` as `URUTAU_PASSWORD` (admin) and `URUTAU_VIEW_PASSWORD` (viewer, read-only). If neither is set, authentication stays off — fine with `URUTAU_BIND=127.0.0.1`. The admin can change mode, save settings and edit the schedule; the viewer sees maps, tables and graphs and can listen to audio. The session uses the `urutau_session` cookie (HttpOnly, SameSite=Lax, 30 days) and also applies on `:8089` (tar1090 and graphs). With the local-only option the installer does not ask; you can still set the passwords later in `.env` and restart with `docker compose up -d`.
 
 ## Operation
 
@@ -186,13 +210,13 @@ To change the option later, run `./install.sh` again, or edit `URUTAU_BIND` in `
 | Start it again | `docker compose start` |
 | Update | `git pull && ./install.sh` |
 | View API logs | `docker compose logs -f api` |
-| API documentation | http://localhost:8000/docs |
+| API documentation | http://localhost:3090/api/docs |
 
 The antenna location can be changed at any time in the Settings tab. Three decimal places (about 100 m) are enough for the range study.
 
 ## Privacy and external connections
 
-The panel is only reachable from the computer itself (`127.0.0.1`), unless access over the local network or Tailscale is allowed (see [Access over the local network and Tailscale](#access-over-the-local-network-and-tailscale)). No reception data is sent to third parties: sharing with tracking networks (ADS-B Exchange, FlightAware and the like) and radiosonde upload to SondeHub are off by default.
+The panel is only reachable from the computer itself (`127.0.0.1`), unless access over the local network or Tailscale is allowed (see [Access over the local network and Tailscale](#access-over-the-local-network-and-tailscale)). No reception data is sent to third parties: sharing with tracking networks (ADS-B Exchange, FlightAware and the like) and radiosonde upload to SondeHub are off by default. Authentication, the schedule and the Health tab run only on the machine; the session cookie creates no outbound connection.
 
 The panel only connects to the internet to obtain information that cannot be produced locally:
 

@@ -64,19 +64,24 @@ msg loc_bad_y "URUTAU_LAT/URUTAU_LON inválidos: '%s' '%s'" "invalid URUTAU_LAT/
 msg loc_bad "coordenadas inválidas; use graus decimais, com sul e oeste negativos." "invalid coordinates; use decimal degrees, with south and west negative." "coordenadas no válidas; usa grados decimales, con sur y oeste negativos." "coordonnées invalides ; utilisez des degrés décimaux, sud et ouest négatifs." "неверные координаты; используйте десятичные градусы, юг и запад со знаком минус."
 msg s4 "4. Quem pode abrir o painel" "4. Who can open the panel" "4. Quién puede abrir el panel" "4. Qui peut ouvrir le panneau" "4. Кто может открыть панель"
 msg s4_help1 "1) só esta máquina (mais seguro)   2) rede local e Tailscale   3) só Tailscale" "1) this machine only (safest)   2) local network and Tailscale   3) Tailscale only" "1) solo esta máquina (más seguro)   2) red local y Tailscale   3) solo Tailscale" "1) cette machine uniquement (le plus sûr)   2) réseau local et Tailscale   3) Tailscale uniquement" "1) только этот компьютер (безопаснее)   2) локальная сеть и Tailscale   3) только Tailscale"
-msg s4_help2 "Nas opções 2 e 3, quem acessa o painel também troca o modo do dongle; a API controla o Docker desta máquina." "With options 2 and 3, whoever opens the panel can also change the dongle mode; the API controls this machine's Docker." "En las opciones 2 y 3, quien abra el panel también puede cambiar el modo del dongle; la API controla el Docker de esta máquina." "Avec les options 2 et 3, quiconque ouvre le panneau peut aussi changer le mode du dongle ; l'API contrôle le Docker de cette machine." "В вариантах 2 и 3 любой, кто откроет панель, может менять режим донгла; API управляет Docker этого компьютера."
+msg s4_help2 "Nas opções 2 e 3 o painel pede senha; quem entra como admin troca o modo do dongle (a API controla o Docker). Visitante só lê." "With options 2 and 3 the panel asks for a password; admin can change the dongle mode (the API controls Docker). Viewer is read-only." "En las opciones 2 y 3 el panel pide contraseña; el admin puede cambiar el modo del dongle (la API controla Docker). El visitante solo lee." "Avec les options 2 et 3 le panneau demande un mot de passe ; l’admin peut changer le mode du dongle (l’API contrôle Docker). Le visiteur est en lecture seule." "В вариантах 2 и 3 панель просит пароль; админ может менять режим донгла (API управляет Docker). Гость — только чтение."
 msg s4_ask "Opção" "Option" "Opción" "Option" "Вариант"
+msg pw_ask "Senha de administrador (vazia = gerar uma)" "Admin password (empty = generate one)" "Contraseña de administrador (vacía = generar una)" "Mot de passe admin (vide = en générer un)" "Пароль администратора (пусто = сгенерировать)"
+msg pw_view "Senha de visitante, só leitura (opcional, Enter pula)" "Viewer password, read-only (optional, Enter to skip)" "Contraseña de visitante, solo lectura (opcional, Enter omite)" "Mot de passe visiteur, lecture seule (optionnel, Entrée pour passer)" "Пароль гостя, только чтение (необязательно, Enter — пропуск)"
+msg pw_gen "senha de administrador gerada (guarde agora; não aparece de novo): %s" "generated admin password (save it now; it will not be shown again): %s" "contraseña de administrador generada (guárdala ahora; no se mostrará otra vez): %s" "mot de passe admin généré (notez-le maintenant ; il ne réapparaîtra pas) : %s" "сгенерирован пароль администратора (сохраните сейчас; больше не покажется): %s"
+msg pw_ok "autenticação do painel ligada" "panel authentication enabled" "autenticación del panel activada" "authentification du panneau activée" "аутентификация панели включена"
+msg pw_off "BIND local: autenticação desligada (defina URUTAU_PASSWORD no .env se quiser)" "local BIND: authentication off (set URUTAU_PASSWORD in .env if you want it)" "BIND local: autenticación desactivada (define URUTAU_PASSWORD en .env si la quieres)" "BIND local : authentification désactivée (définissez URUTAU_PASSWORD dans .env si besoin)" "локальный BIND: аутентификация выключена (задайте URUTAU_PASSWORD в .env при необходимости)"
 msg ts_none "Tailscale não encontrado ou desconectado (tailscale ip -4 vazio); usando só esta máquina." "Tailscale not found or not connected (tailscale ip -4 is empty); using this machine only." "Tailscale no encontrado o desconectado (tailscale ip -4 vacío); usando solo esta máquina." "Tailscale introuvable ou déconnecté (tailscale ip -4 vide) ; accès limité à cette machine." "Tailscale не найден или не подключён (tailscale ip -4 пусто); доступ только с этого компьютера."
 msg ts_note "o Tailscale precisa estar conectado antes do Docker subir, senão os containers não abrem a porta nesse IP." "Tailscale must be connected before Docker starts, otherwise the containers cannot bind to that IP." "Tailscale debe estar conectado antes de que arranque Docker; si no, los contenedores no pueden abrir el puerto en esa IP." "Tailscale doit être connecté avant le démarrage de Docker, sinon les conteneurs ne peuvent pas ouvrir le port sur cette IP." "Tailscale должен подключаться раньше запуска Docker, иначе контейнеры не смогут открыть порт на этом IP."
 msg bind_ok "painel em %s" "panel on %s" "panel en %s" "panneau sur %s" "панель на %s"
 msg env_bak "o .env anterior foi guardado como backup" "the previous .env was backed up" "el .env anterior se guardó como copia de seguridad" "l’ancien .env a été sauvegardé" "прежний .env сохранён как резервная копия"
-msg env_ok ".env escrito" ".env written" ".env escrito" ".env écrit" ".env записан"
+msg env_ok ".env escrito (chmod 600)" ".env written (chmod 600)" ".env escrito (chmod 600)" ".env écrit (chmod 600)" ".env записан (chmod 600)"
 msg s5 "5. Subindo" "5. Starting" "5. Iniciando" "5. Démarrage" "5. Запуск"
 msg pulled "imagens prontas baixadas" "prebuilt images downloaded" "imágenes listas descargadas" "images prêtes téléchargées" "готовые образы загружены"
 msg building "não há imagem pronta para esta máquina; compilando (no Raspberry Pi pode levar mais de uma hora)." "no prebuilt image for this machine; building (on a Raspberry Pi this may take over an hour)." "no hay imagen lista para esta máquina; compilando (en una Raspberry Pi puede tardar más de una hora)." "aucune image prête pour cette machine ; compilation (sur un Raspberry Pi, cela peut prendre plus d’une heure)." "готового образа для этой машины нет; идёт сборка (на Raspberry Pi это может занять больше часа)."
 msg done "Pronto." "Done." "Listo." "Terminé." "Готово."
 msg open "Abra %s" "Open %s" "Abre %s" "Ouvrez %s" "Откройте %s"
-msg links "mapa tar1090: %s · API: %s" "tar1090 map: %s · API: %s" "mapa tar1090: %s · API: %s" "carte tar1090 : %s · API : %s" "карта tar1090: %s · API: %s"
+msg links "mapa tar1090: %s · docs da API: %s" "tar1090 map: %s · API docs: %s" "mapa tar1090: %s · docs de la API: %s" "carte tar1090 : %s · docs de l’API : %s" "карта tar1090: %s · документация API: %s"
 msg ops "parar: docker compose stop · voltar: docker compose start · atualizar: git pull && ./install.sh" "stop: docker compose stop · resume: docker compose start · update: git pull && ./install.sh" "detener: docker compose stop · volver: docker compose start · actualizar: git pull && ./install.sh" "arrêter : docker compose stop · relancer : docker compose start · mettre à jour : git pull && ./install.sh" "остановить: docker compose stop · запустить: docker compose start · обновить: git pull && ./install.sh"
 msg yn "(s/n)" "(y/n)" "(s/n)" "(o/n)" "(д/н)"
 
@@ -198,6 +203,38 @@ if [[ -z "$BIND" ]]; then
 fi
 ok "$(m bind_ok "$BIND")"
 
+# senha do painel: opções 2/3 (BIND não local); opção 1 não pergunta
+ADMIN_PW="${URUTAU_PASSWORD-}"
+VIEW_PW="${URUTAU_VIEW_PASSWORD-}"
+is_local_bind() { [[ "$1" == "127.0.0.1" || "$1" == "localhost" || "$1" == "::1" ]]; }
+if ! is_local_bind "$BIND"; then
+  if [[ $YES == 1 ]]; then
+    # -y: usa env; se não houver senha, gera e imprime uma vez
+    if [[ -z "${ADMIN_PW}" ]]; then
+      ADMIN_PW="$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 16)"
+      warn "$(m pw_gen "$ADMIN_PW")"
+    fi
+  else
+    # read -rs: senha oculta; vazio = gerar
+    printf '  %s ' "$(m pw_ask)"
+    read -rs ADMIN_PW || true
+    printf '\n'
+    if [[ -z "${ADMIN_PW}" ]]; then
+      ADMIN_PW="$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 16)"
+      warn "$(m pw_gen "$ADMIN_PW")"
+    fi
+    printf '  %s ' "$(m pw_view)"
+    read -rs VIEW_PW || true
+    printf '\n'
+  fi
+  ok "$(m pw_ok)"
+else
+  # BIND local: não força senha; preserva o que já estiver no ambiente/.env
+  ADMIN_PW="${URUTAU_PASSWORD-}"
+  VIEW_PW="${URUTAU_VIEW_PASSWORD-}"
+  say "    ${d}$(m pw_off)${n}"
+fi
+
 if [[ -f .env ]]; then
   cp .env ".env.bak.$(date +%Y%m%d%H%M%S)"
   ok "$(m env_bak)"
@@ -210,6 +247,15 @@ setkv READSB_LAT "$LAT"
 setkv READSB_LON "$LON"
 setkv URUTAU_BIND "$BIND"
 setkv DOCKER_GID "$DOCKER_GID"
+# só grava senhas quando BIND não é local (ou quando já vieram do ambiente no -y local)
+if ! is_local_bind "$BIND"; then
+  setkv URUTAU_PASSWORD "$ADMIN_PW"
+  setkv URUTAU_VIEW_PASSWORD "$VIEW_PW"
+elif [[ -n "${URUTAU_PASSWORD-}" || -n "${URUTAU_VIEW_PASSWORD-}" ]]; then
+  [[ -n "${URUTAU_PASSWORD-}" ]] && setkv URUTAU_PASSWORD "$URUTAU_PASSWORD"
+  [[ -n "${URUTAU_VIEW_PASSWORD-}" ]] && setkv URUTAU_VIEW_PASSWORD "$URUTAU_VIEW_PASSWORD"
+fi
+chmod 600 .env
 ok "$(m env_ok)"
 
 # ---------- 5. Subir ----------
@@ -231,6 +277,6 @@ fi
 host="${host:-localhost}"
 say ""
 say "${b}$(m done)${n} $(m open "${o}http://${host}:3090${n}")"
-say "  ${d}$(m links "http://${host}:8089" "http://${host}:8000/docs")${n}"
+say "  ${d}$(m links "http://${host}:8089" "http://${host}:3090/api/docs")${n}"
 say "  ${d}$(m ops)${n}"
 say ""
