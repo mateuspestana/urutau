@@ -24,6 +24,33 @@ type PanelProps = {
   extra?: ReactNode
 }
 
+/** Links CSV/JSONL para um conjunto de /api/export (Parquet fica no host via DuckDB). */
+export function ExportLinks({
+  dataset,
+  since,
+  until,
+}: {
+  dataset: string
+  since?: number
+  until?: number
+}) {
+  const q = new URLSearchParams()
+  if (since != null) q.set('since', String(Math.floor(since)))
+  if (until != null) q.set('until', String(Math.floor(until)))
+  const qs = q.toString() ? `?${q}` : ''
+  return (
+    <div className="row export-links">
+      <span className="muted">{t('Exportar')}</span>
+      <a className="btn-link" href={`/api/export/${dataset}.csv${qs}`}>
+        CSV
+      </a>
+      <a className="btn-link" href={`/api/export/${dataset}.jsonl${qs}`}>
+        JSONL
+      </a>
+    </div>
+  )
+}
+
 /** Bloco padrão de um decodificador: campos, ligar/parar, contadores da sessão e saída do processo. */
 export function DecoderPanel(p: PanelProps) {
   const { canControl } = useAuth()

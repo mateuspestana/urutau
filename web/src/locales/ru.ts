@@ -738,6 +738,41 @@ const d: Dict = {
   'Salvar alertas': 'Сохранить оповещения',
   'Regras de alerta salvas': 'Правила оповещений сохранены',
   'Offline': 'Офлайн',
+  'sem conexão com a estação': 'нет связи со станцией',
+  'Nova versão disponível, recarregar': 'Доступна новая версия, перезагрузить',
+  'Nova versão {v} disponível. Atualize com: git pull && ./install.sh':
+    'Доступна новая версия {v}. Обновите: git pull && ./install.sh',
+  'Atualize com: git pull && ./install.sh': 'Обновите: git pull && ./install.sh',
+  'nova versão {v}': 'новая версия {v}',
+  'Simulação atualizada': 'Симуляция обновлена',
+  'Apagados {n} itens · {b} liberados': 'Удалено {n} записей · освобождено {b}',
+  'Exportar conjuntos e apagar o que passou da retenção. Nada sai da máquina.':
+    'Экспорт наборов и удаление данных после срока хранения. Ничего не покидает машину.',
+  'Desde': 'С',
+  'Até': 'По',
+  'Conjunto': 'Набор',
+  'Linhas': 'Строки',
+  'Retenção (dias)': 'Хранение (дни)',
+  'Seriam apagados': 'Будет удалено',
+  'Exportar': 'Экспорт',
+  'cota {g} GB': 'квота {g} ГБ',
+  'nunca': 'никогда',
+  'Salvar retenção': 'Сохранить хранение',
+  'Simular retenção': 'Симулировать хранение',
+  'Digite {p} para apagar': 'Введите {p} для удаления',
+  'Apagar agora': 'Удалить сейчас',
+  'Avisar quando houver versão nova (consulta o GitHub 1×/dia; User-Agent urutau-update-check). Nunca atualiza sozinho.':
+    'Уведомлять о новой версии (запрос к GitHub 1×/день; User-Agent urutau-update-check). Никогда не обновляется сам.',
+  'Parquet não vem na API (pyarrow ~150 MB). Converta o CSV no host com DuckDB.':
+    'Parquet не входит в API (pyarrow ~150 МБ). Конвертируйте CSV на хосте через DuckDB.',
+  'Posições CSV': 'Позиции CSV',
+  'Passagens ADS-B': 'Пролёты ADS-B',
+  'Posições ADS-B': 'Позиции ADS-B',
+  'Saúde (ruído)': 'Здоровье (шум)',
+  'Capturas sat. vazias': 'Пустые снимки спутников',
+  'Gravações (cota GB)': 'Записи (квота ГБ)',
+  'AIS': 'AIS',
+  'ISM': 'ISM',
 }
 
 export default d

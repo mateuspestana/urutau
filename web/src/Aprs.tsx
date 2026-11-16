@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { api } from './api'
 import type { ObsMessage, StationStatus } from './api'
 import { distKm } from './adsb'
-import { DecoderPanel, Fields } from './decoderKit'
+import { DecoderPanel, ExportLinks, Fields } from './decoderKit'
 import { ago, clock, useConfigOnce, useNow, useObs } from './decoderUtil'
 import { Icon } from './Icon'
 import { NumField } from './NumField'
@@ -114,6 +114,7 @@ export function Aprs({ status, busy, visible, center, run }: Props) {
         ]}
         empty={t('Nada ainda. Em muitas cidades o APRS tem pouco tráfego; com antena interna, pacotes de digipeaters altos são os mais prováveis.')}
         logLabel="rtl_fm | multimon-ng"
+        extra={<ExportLinks dataset="aprs" />}
       >
         <label>
           {t('Frequência (MHz)')}

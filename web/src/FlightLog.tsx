@@ -155,6 +155,12 @@ export function FlightLog({ onShowTrack, trackId, flash }: Props) {
         <a className="btn-link" href={`/api/log/export.csv${logQuery(filter())}`}>
           {t('Baixar CSV')}
         </a>
+        <a className="btn-link" href={`/api/export/sightings.jsonl${logQuery({ since: filter().since })}`}>
+          JSONL
+        </a>
+        <a className="btn-link" href={`/api/export/positions.csv${logQuery({ since: filter().since })}`}>
+          {t('Posições CSV')}
+        </a>
         <button type="button" className={showEvents ? 'on' : ''} onClick={() => setShowEvents((v) => !v)}>
           {t('Eventos da estação')}
         </button>

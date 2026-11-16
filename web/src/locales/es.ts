@@ -738,6 +738,41 @@ const d: Dict = {
   'Salvar alertas': 'Guardar alertas',
   'Regras de alerta salvas': 'Reglas de alerta guardadas',
   'Offline': 'Sin conexión',
+  'sem conexão com a estação': 'sin conexión con la estación',
+  'Nova versão disponível, recarregar': 'Nueva versión disponible, recargar',
+  'Nova versão {v} disponível. Atualize com: git pull && ./install.sh':
+    'Nueva versión {v} disponible. Actualice con: git pull && ./install.sh',
+  'Atualize com: git pull && ./install.sh': 'Actualice con: git pull && ./install.sh',
+  'nova versão {v}': 'nueva versión {v}',
+  'Simulação atualizada': 'Simulación actualizada',
+  'Apagados {n} itens · {b} liberados': 'Eliminados {n} elementos · {b} liberados',
+  'Exportar conjuntos e apagar o que passou da retenção. Nada sai da máquina.':
+    'Exporte conjuntos y borre lo que pasó la retención. Nada sale de esta máquina.',
+  'Desde': 'Desde',
+  'Até': 'Hasta',
+  'Conjunto': 'Conjunto',
+  'Linhas': 'Filas',
+  'Retenção (dias)': 'Retención (días)',
+  'Seriam apagados': 'Se borrarían',
+  'Exportar': 'Exportar',
+  'cota {g} GB': 'cupo {g} GB',
+  'nunca': 'nunca',
+  'Salvar retenção': 'Guardar retención',
+  'Simular retenção': 'Simular retención',
+  'Digite {p} para apagar': 'Escriba {p} para borrar',
+  'Apagar agora': 'Borrar ahora',
+  'Avisar quando houver versão nova (consulta o GitHub 1×/dia; User-Agent urutau-update-check). Nunca atualiza sozinho.':
+    'Avisar cuando haya versión nueva (consulta GitHub 1×/día; User-Agent urutau-update-check). Nunca actualiza solo.',
+  'Parquet não vem na API (pyarrow ~150 MB). Converta o CSV no host com DuckDB.':
+    'Parquet no viene en la API (pyarrow ~150 MB). Convierta el CSV en el host con DuckDB.',
+  'Posições CSV': 'Posiciones CSV',
+  'Passagens ADS-B': 'Avistamientos ADS-B',
+  'Posições ADS-B': 'Posiciones ADS-B',
+  'Saúde (ruído)': 'Salud (ruido)',
+  'Capturas sat. vazias': 'Capturas sat. vacías',
+  'Gravações (cota GB)': 'Grabaciones (cupo GB)',
+  'AIS': 'AIS',
+  'ISM': 'ISM',
 }
 
 export default d

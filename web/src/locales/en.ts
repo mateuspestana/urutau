@@ -738,6 +738,41 @@ const d: Dict = {
   'Salvar alertas': 'Save alerts',
   'Regras de alerta salvas': 'Alert rules saved',
   'Offline': 'Offline',
+  'sem conexão com a estação': 'no connection to the station',
+  'Nova versão disponível, recarregar': 'New version available, reload',
+  'Nova versão {v} disponível. Atualize com: git pull && ./install.sh':
+    'New version {v} available. Update with: git pull && ./install.sh',
+  'Atualize com: git pull && ./install.sh': 'Update with: git pull && ./install.sh',
+  'nova versão {v}': 'new version {v}',
+  'Simulação atualizada': 'Simulation updated',
+  'Apagados {n} itens · {b} liberados': 'Deleted {n} items · {b} freed',
+  'Exportar conjuntos e apagar o que passou da retenção. Nada sai da máquina.':
+    'Export datasets and delete what is past retention. Nothing leaves this machine.',
+  'Desde': 'From',
+  'Até': 'Until',
+  'Conjunto': 'Dataset',
+  'Linhas': 'Rows',
+  'Retenção (dias)': 'Retention (days)',
+  'Seriam apagados': 'Would delete',
+  'Exportar': 'Export',
+  'cota {g} GB': 'quota {g} GB',
+  'nunca': 'never',
+  'Salvar retenção': 'Save retention',
+  'Simular retenção': 'Simulate retention',
+  'Digite {p} para apagar': 'Type {p} to delete',
+  'Apagar agora': 'Delete now',
+  'Avisar quando houver versão nova (consulta o GitHub 1×/dia; User-Agent urutau-update-check). Nunca atualiza sozinho.':
+    'Notify when a new version is out (checks GitHub once a day; User-Agent urutau-update-check). Never updates by itself.',
+  'Parquet não vem na API (pyarrow ~150 MB). Converta o CSV no host com DuckDB.':
+    'Parquet is not in the API (pyarrow ~150 MB). Convert the CSV on the host with DuckDB.',
+  'Posições CSV': 'Positions CSV',
+  'Passagens ADS-B': 'ADS-B sightings',
+  'Posições ADS-B': 'ADS-B positions',
+  'Saúde (ruído)': 'Health (noise)',
+  'Capturas sat. vazias': 'Empty sat. captures',
+  'Gravações (cota GB)': 'Recordings (GB quota)',
+  'AIS': 'AIS',
+  'ISM': 'ISM',
 }
 
 export default d

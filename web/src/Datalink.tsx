@@ -204,6 +204,12 @@ export function Datalink({ status, busy, visible, run }: Props) {
               <Icon name="stop" /> {t('Parar e voltar ao ADS-B')}
             </button>
           )}
+          <a className="btn-link" href="/api/export/datalink.csv">
+            CSV
+          </a>
+          <a className="btn-link" href="/api/export/datalink.jsonl">
+            JSONL
+          </a>
         </div>
       </section>
 

@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { api } from './api'
 import type { ObsObject, StationStatus } from './api'
 import { distKm } from './adsb'
-import { DecoderPanel, Fields } from './decoderKit'
+import { DecoderPanel, ExportLinks, Fields } from './decoderKit'
 import { ago, useConfigOnce, useNow, useObs } from './decoderUtil'
 import { Icon } from './Icon'
 import { NumField } from './NumField'
@@ -159,6 +159,7 @@ export function Ships({ status, busy, visible, center, run }: Props) {
         ]}
         empty={t('Nada ainda. Navios transmitem a cada 2–10 s em movimento e a cada 3 min fundeados; com antena interna, pode demorar.')}
         logLabel="AIS-catcher"
+        extra={<ExportLinks dataset="ais" />}
       >
         <label>
           Gain (dB)

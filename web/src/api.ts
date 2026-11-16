@@ -51,6 +51,44 @@ export type StationConfig = {
   adsb_serial?: string
   sdr_serial?: string
   alerts?: AlertRules
+  retention?: RetentionConfig
+  update_check?: boolean
+}
+
+/** Dias de retenção; null/0 = nunca. */
+export type RetentionConfig = {
+  sightings?: number | null
+  positions?: number | null
+  range?: number | null
+  events?: number | null
+  datalink?: number | null
+  ais?: number | null
+  aprs?: number | null
+  ism?: number | null
+  sonde?: number | null
+  alerts?: number | null
+  health?: number | null
+  sat_empty?: number | null
+}
+
+export type DataSummary = {
+  retention: RetentionConfig
+  rec_max_gb: number
+  confirm_phrase: string
+  counts: Record<string, { rows: number; bytes?: number; objects?: number; tracks?: number; messages?: number; measurements?: number }>
+  simulate: Record<string, number>
+  formats: string[]
+  parquet_note: string
+}
+
+export type UpdateInfo = {
+  enabled: boolean
+  current: string
+  latest: string | null
+  newer?: boolean
+  url: string | null
+  notes_excerpt: string | null
+  checked_at: number | null
 }
 
 export type AlertItem = {
@@ -644,6 +682,24 @@ export const api = {
   alertsRules: () => j<AlertRules>('/api/alerts/rules'),
   saveAlertsRules: (body: Partial<AlertRules>) =>
     j<AlertRules>('/api/alerts/rules', { method: 'PUT', body: JSON.stringify(body) }),
+  dataSummary: () => j<DataSummary>('/api/data'),
+  retentionSimulate: (retention?: RetentionConfig) =>
+    j<{ simulate: Record<string, number>; retention: RetentionConfig }>('/api/data/retention/simulate', {
+      method: 'POST',
+      body: JSON.stringify({ retention }),
+    }),
+  retentionPurge: (confirm: string, retention?: RetentionConfig) =>
+    j<{
+      ok: boolean
+      deleted: Record<string, number>
+      bytes_before: number
+      bytes_after: number
+      vacuumed: string[]
+    }>('/api/data/retention/purge', {
+      method: 'POST',
+      body: JSON.stringify({ confirm, retention }),
+    }),
+  updateInfo: () => j<UpdateInfo>('/api/update'),
 }
 
 export type Aircraft = {

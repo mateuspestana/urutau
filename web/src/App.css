@@ -734,6 +734,17 @@ label {
   animation: toast-in 220ms var(--ease);
 }
 
+.offline-banner {
+  margin: 0 var(--gutter);
+  padding: 10px 14px;
+  background: color-mix(in oklab, var(--warn) 16%, var(--bg-elev));
+  color: var(--warn);
+  border: 1px solid color-mix(in oklab, var(--warn) 36%, transparent);
+  border-radius: var(--r-md);
+  font-size: 13.5px;
+  text-align: center;
+}
+
 /* alertas (sino no cabeçalho) */
 .alerts-bell {
   position: relative;
@@ -845,6 +856,38 @@ footer {
   margin-top: 32px;
   color: var(--muted);
   font-size: 12px;
+}
+footer .update-badge {
+  color: var(--accent-text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.data-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  margin-bottom: 14px;
+  border: 0;
+  padding: 0;
+}
+.data-table input {
+  max-width: 6rem;
+}
+label.inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+label.check-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+.export-links {
+  margin: 8px 0 4px;
 }
 
 /* ---------- painéis ---------- */

@@ -738,6 +738,41 @@ const d: Dict = {
   'Salvar alertas': 'Enregistrer les alertes',
   'Regras de alerta salvas': 'Règles d’alerte enregistrées',
   'Offline': 'Hors ligne',
+  'sem conexão com a estação': 'pas de connexion avec la station',
+  'Nova versão disponível, recarregar': 'Nouvelle version disponible, recharger',
+  'Nova versão {v} disponível. Atualize com: git pull && ./install.sh':
+    'Nouvelle version {v} disponible. Mettez à jour avec : git pull && ./install.sh',
+  'Atualize com: git pull && ./install.sh': 'Mettez à jour avec : git pull && ./install.sh',
+  'nova versão {v}': 'nouvelle version {v}',
+  'Simulação atualizada': 'Simulation mise à jour',
+  'Apagados {n} itens · {b} liberados': '{n} éléments supprimés · {b} libérés',
+  'Exportar conjuntos e apagar o que passou da retenção. Nada sai da máquina.':
+    'Exporter les jeux et supprimer ce qui dépasse la rétention. Rien ne quitte cette machine.',
+  'Desde': 'Depuis',
+  'Até': 'Jusqu’au',
+  'Conjunto': 'Jeu',
+  'Linhas': 'Lignes',
+  'Retenção (dias)': 'Rétention (jours)',
+  'Seriam apagados': 'Serait supprimé',
+  'Exportar': 'Exporter',
+  'cota {g} GB': 'quota {g} Go',
+  'nunca': 'jamais',
+  'Salvar retenção': 'Enregistrer la rétention',
+  'Simular retenção': 'Simuler la rétention',
+  'Digite {p} para apagar': 'Tapez {p} pour supprimer',
+  'Apagar agora': 'Supprimer maintenant',
+  'Avisar quando houver versão nova (consulta o GitHub 1×/dia; User-Agent urutau-update-check). Nunca atualiza sozinho.':
+    'Prévenir quand une nouvelle version sort (requête GitHub 1×/jour ; User-Agent urutau-update-check). Ne met jamais à jour tout seul.',
+  'Parquet não vem na API (pyarrow ~150 MB). Converta o CSV no host com DuckDB.':
+    'Parquet n’est pas dans l’API (pyarrow ~150 Mo). Convertissez le CSV sur l’hôte avec DuckDB.',
+  'Posições CSV': 'Positions CSV',
+  'Passagens ADS-B': 'Passages ADS-B',
+  'Posições ADS-B': 'Positions ADS-B',
+  'Saúde (ruído)': 'Santé (bruit)',
+  'Capturas sat. vazias': 'Captures sat. vides',
+  'Gravações (cota GB)': 'Enregistrements (quota Go)',
+  'AIS': 'AIS',
+  'ISM': 'ISM',
 }
 
 export default d

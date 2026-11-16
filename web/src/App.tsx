@@ -26,6 +26,8 @@ import { Sats } from './Sats'
 import { Health } from './Health'
 import { Schedule } from './Schedule'
 import { AlertsBell, AlertsConfig } from './AlertsBell'
+import { DataPanel } from './DataPanel'
+import type { UpdateInfo } from './api'
 import { RdsCard } from './RdsCard'
 import { useStored } from './useStored'
 import { SpectrumChart } from './SpectrumChart'
@@ -114,6 +116,7 @@ export default function App() {
   const [spectrum, setSpectrum] = useState<SpectrumPoint[]>([])
   const [busy, setBusy] = useState(false)
   const [toast, setToast] = useState('')
+  const [offline, setOffline] = useState(() => typeof navigator !== 'undefined' && !navigator.onLine)
   const [fmFreq, setFmFreq] = useState(90.3)
   const [fmGain, setFmGain] = useState(40)
   const [airFreq, setAirFreq] = useState(119.3)
@@ -145,12 +148,14 @@ export default function App() {
   const [recordings, setRecordings] = useState<Recording[]>([])
   const [recMaxGb, setRecMaxGb] = useState(2)
   const [dongleSerials, setDongleSerials] = useState<string[]>([])
+  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
   /** a config só preenche o formulário na 1ª carga (antes sobrescrevia o que o usuário digitava a cada 2,5 s) */
   const cfgLoaded = useRef(false)
   const refresh = useCallback(async () => {
     try {
       const s = await api.status()
       setStatus(s)
+      setOffline(false)
       if (s.config && !cfgLoaded.current) {
         cfgLoaded.current = true
         setConfig(s.config)
@@ -163,8 +168,8 @@ export default function App() {
         setSpecBin(s.config.spectrum_bin_khz)
         setSpecGain(s.config.spectrum_gain)
       }
-    } catch (e) {
-      setToast(String(e))
+    } catch {
+      setOffline(true)
     }
   }, [])
 
@@ -211,6 +216,12 @@ export default function App() {
   }, [])
 
   useEffect(() => {
+    const goOffline = () => setOffline(true)
+    window.addEventListener('offline', goOffline)
+    return () => window.removeEventListener('offline', goOffline)
+  }, [])
+
+  useEffect(() => {
     if (tab !== 'config') return
     api
       .diagnostics()
@@ -248,6 +259,38 @@ export default function App() {
     setToast(msg)
     setTimeout(() => setToast(''), 4000)
   }
+
+  useEffect(() => {
+    let cancelled = false
+    const tick = async () => {
+      try {
+        const u = await api.updateInfo()
+        if (cancelled) return
+        setUpdateInfo(u)
+        if (u.enabled && u.newer && u.latest) {
+          const key = `urutau-update-toast-${u.latest}`
+          try {
+            if (localStorage.getItem(key)) return
+            localStorage.setItem(key, '1')
+          } catch {
+            /* ignore */
+          }
+          flash(
+            t('Nova versão {v} disponível. Atualize com: git pull && ./install.sh', { v: u.latest }),
+          )
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+    tick()
+    const id = setInterval(tick, 3600_000)
+    return () => {
+      cancelled = true
+      clearInterval(id)
+    }
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- um toast por versão via localStorage
+  }, [])
 
   const deleteRecording = async (name: string) => {
     if (!canControl) return
@@ -557,6 +600,11 @@ export default function App() {
       </header>
 
       {toast && <div className="toast">{toast}</div>}
+      {offline && (
+        <div className="offline-banner" role="status">
+          {t('sem conexão com a estação')}
+        </div>
+      )}
 
       <section className="receiver" aria-label={t('Receptor')}>
         <BandDial
@@ -1189,6 +1237,8 @@ export default function App() {
 
         <AlertsConfig flash={flash} disabled={noControl} />
 
+        <DataPanel config={config} setConfig={setConfig} flash={flash} disabled={noControl} />
+
         <section id="markers" className="panel">
           <div className="panel-head">
             <h2>{t('Marcadores')}</h2>
@@ -1275,7 +1325,22 @@ export default function App() {
       </div>
 
       <footer>
-        Urutau {__APP_VERSION__} · {t('Desenvolvido por')}{' '}
+        Urutau {__APP_VERSION__}
+        {updateInfo?.newer && updateInfo.latest ? (
+          <>
+            {' · '}
+            <a
+              className="update-badge"
+              href={updateInfo.url || 'https://github.com/mateuspestana/urutau/releases'}
+              target="_blank"
+              rel="noreferrer"
+              title={t('Atualize com: git pull && ./install.sh')}
+            >
+              {t('nova versão {v}', { v: updateInfo.latest })}
+            </a>
+          </>
+        ) : null}{' '}
+        · {t('Desenvolvido por')}{' '}
         <a href="https://macape.dev" target="_blank" rel="noreferrer">
           MACAPE Pesquisas e Consultoria em Tecnologia Ltda
         </a>{' '}

@@ -2,6 +2,14 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); as versões seguem o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [0.4.0] - 2026-11-16
+
+### Adicionado
+
+- PWA: manifesto, service worker (casco offline; nunca cacheia `/api/`) e instalação no celular em HTTPS ou `localhost`.
+- Exportação genérica CSV/JSONL de todos os conjuntos; retenção configurável; painel Dados em Config. Parquet fora da API — converter com DuckDB no host.
+- Aviso de nova versão desligado por padrão (`update_check`): se ligado, consulta o GitHub Releases uma vez por dia (`User-Agent: urutau-update-check`); nunca atualiza sozinho.
+
 ## [0.3.0] - 2026-11-16
 
 ### Adicionado
@@ -82,6 +90,7 @@ Primeira versão pública.
 - Sem envio de dados a redes de rastreamento nem ao SondeHub; fontes distribuídas com o software.
 - A localização da antena é opcional e fica apenas no `.env` e no volume local.
 
+[0.4.0]: https://github.com/mateuspestana/urutau/releases/tag/v0.4.0
 [0.3.0]: https://github.com/mateuspestana/urutau/releases/tag/v0.3.0
 [0.2.0]: https://github.com/mateuspestana/urutau/releases/tag/v0.2.0
 [0.1.6]: https://github.com/mateuspestana/urutau/releases/tag/v0.1.6

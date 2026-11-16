@@ -64,6 +64,23 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "sdr_serial": "",
     # alertas só no navegador (ver api/app/alerts.py); sem Telegram/e-mail
     "alerts": {},
+    # retenção: None/0 = nunca; ver api/app/retention.py
+    "retention": {
+        "sightings": None,
+        "positions": None,
+        "range": None,
+        "events": 365,
+        "datalink": 365,
+        "ais": 180,
+        "aprs": 180,
+        "ism": 90,
+        "sonde": 365,
+        "alerts": 90,
+        "health": 365,
+        "sat_empty": 7,
+    },
+    # se ligado, consulta o GitHub 1×/dia (User-Agent urutau-update-check); nunca atualiza sozinho
+    "update_check": False,
 }
 
 

@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { api } from './api'
 import type { StationStatus } from './api'
 import { distKm } from './adsb'
-import { DecoderPanel, Fields } from './decoderKit'
+import { DecoderPanel, ExportLinks, Fields } from './decoderKit'
 import { ago, useConfigOnce, useNow, useObs } from './decoderUtil'
 import { Icon } from './Icon'
 import { NumField } from './NumField'
@@ -117,6 +117,7 @@ export function Sondes({ status, busy, visible, center, run, flash, goto }: Prop
         logLabel="radiosonde_auto_rx"
         extra={
           <>
+            <ExportLinks dataset="sonde" />
             <div className="row">
               <label className="check">
                 <input type="checkbox" disabled={!canControl} checked={auto} onChange={(e) => saveAuto(e.target.checked)} />

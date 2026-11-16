@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from './api'
 import type { ObsMessage, ObsObject, StationStatus } from './api'
-import { DecoderPanel, Fields } from './decoderKit'
+import { DecoderPanel, ExportLinks, Fields } from './decoderKit'
 import { ago, clock, useConfigOnce, useObs } from './decoderUtil'
 import { Icon } from './Icon'
 import { NumField } from './NumField'
@@ -94,6 +94,7 @@ export function Ism({ status, busy, visible, run }: Props) {
         ]}
         empty={t('Nada ainda. Sensores costumam transmitir a cada 30–60 s; pneus só com o carro andando.')}
         logLabel="rtl_433"
+        extra={<ExportLinks dataset="ism" />}
       >
         <label>
           {t('Frequências (MHz)')}

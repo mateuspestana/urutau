@@ -34,7 +34,7 @@ The project is meant for anyone who wants to observe their own airspace and wate
 | [ISM sensors](#ism-sensors-433-mhz) | Weather stations, thermometers and other wireless sensors | 433.92 MHz |
 | [Satellites](#satellite-images-meteor-m) | Meteor-M satellite images, verdict and SNR per pass | 137.9 MHz |
 
-Beyond the receivers, the panel offers a [schedule](#schedule) (satellites, radiosondes, modes and audio recording), [health](#health) checks for the receiver and antenna, browser-only [alerts](#alerts), an [aircraft log](#aircraft-log), a [range study](#range-study), [performance graphs](#graphs), [markers](#markers) and an interface in [five languages](#languages-and-appearance).
+Beyond the receivers, the panel offers a [schedule](#schedule) (satellites, radiosondes, modes and audio recording), [health](#health) checks for the receiver and antenna, browser-only [alerts](#alerts), an [aircraft log](#aircraft-log), a [range study](#range-study), [data](#data) (export and retention), [performance graphs](#graphs), [markers](#markers), [phone install](#install-on-your-phone-pwa) and an interface in [five languages](#languages-and-appearance).
 
 ### Panel and tuning scale
 
@@ -148,6 +148,23 @@ The Schedule tab shows who gets the receiver over the next 48 hours: satellite p
 
 The Health tab gathers receiver and antenna diagnostics: detected USB dongles, warnings (TV driver loaded, USB in use, disk full, stale TLE), container status, disk use and a noise-floor measurement per band (FM, airband, Meteor, AIS, sondes, ISM and ADS-B). Measuring pauses ADS-B for about a minute and lets you compare antennas or placements by the delta in dB. The RTL-SDR Blog V4 has a TCXO (±1 ppm); PPM calibration is not needed.
 
+### Data
+
+In the Settings tab, the Data section lists each stored dataset (ADS-B sightings and positions, events, datalink, AIS, APRS, ISM, sondes, alerts, range, health…): row counts, approximate size and CSV or JSONL export with a date filter. Per-dataset retention (default: never for sightings, positions and range; 90–365 days for the rest; empty satellite captures after 7 days) runs daily around 03:30; you can simulate what would be deleted and run “Delete now” with a typed confirmation. Nothing leaves the machine. Parquet is not in the API (pyarrow would grow the image by more than 10%); convert the CSV on the host with DuckDB:
+
+```bash
+duckdb -c "COPY (SELECT * FROM read_csv('x.csv')) TO 'x.parquet'"
+```
+
+### Install on your phone (PWA)
+
+The panel is a Progressive Web App: manifest, service worker (shell and assets only; never `/api/`) and install as an app. It only works in a secure context (HTTPS or `localhost`).
+
+- **Android / Chrome:** menu → “Add to Home screen” (or “Install app”).
+- **iOS / Safari:** Share → “Add to Home Screen”.
+
+Away from `localhost`, use HTTPS. On the Tailscale network, with the panel on `127.0.0.1:3090`, for example `tailscale serve --bg 3090` (check `tailscale serve --help` for your version). The same HTTPS also enables system browser notifications.
+
 ### Languages and appearance
 
 The interface is available in Portuguese (default), English, Spanish, French and Russian, with numbers and dates formatted for each language. There are light and dark themes, and the panel adapts to phone screens. The installer also speaks the five languages, following the system language.
@@ -202,7 +219,7 @@ By default, the panel only opens on the computer itself. The installer offers th
 
 With options 2 or 3, open `http://<station-address>:3090` on another device (for example, the machine’s Tailscale name or IP). Links to tar1090 and to the graphs automatically follow the address in use and go through the same authenticated proxy on port `:8089`. The API port (`8000`) listens only on `127.0.0.1`. With option 3, Tailscale must be connected before Docker starts. With a password set, only the admin can change the receiver mode; the API controls the machine’s Docker: only allow access on trusted networks.
 
-System browser notifications (Notification API) only exist on HTTPS or `localhost`. On `http://100.x.y.z` they do not appear; the bell, toast and tab title still work. For HTTPS on the Tailscale network, with the panel only on `127.0.0.1:3090`, use for example `tailscale serve --bg 3090` (check `tailscale serve --help` for your version).
+System browser notifications (Notification API) and [PWA install](#install-on-your-phone-pwa) only exist on HTTPS or `localhost`. On `http://100.x.y.z` they do not appear; the bell, toast and tab title still work. For HTTPS on the Tailscale network, with the panel only on `127.0.0.1:3090`, use for example `tailscale serve --bg 3090` (check `tailscale serve --help` for your version).
 
 To change the option later, run `./install.sh` again, or edit `URUTAU_BIND` in `.env` and run `docker compose up -d`.
 
@@ -235,6 +252,7 @@ The panel only connects to the internet to obtain information that cannot be pro
 | Offline map (optional) | local PMTiles file under `/data/maps/` | none |
 | Aircraft registration and type | database shipped with tar1090 | prefix of the aircraft code |
 | Aircraft photo, when one is selected | planespotters.net | aircraft code and registration |
+| New-version notice (optional) | GitHub Releases | if `update_check` is on in Settings → Data, checks once a day; User-Agent `urutau-update-check`; never updates by itself |
 
 The HTML range report embeds Leaflet; it does not fetch a library from a CDN. For an offline map, generate a PMTiles extract (ODbL licence / OpenStreetMap and Protomaps attribution) and place the file in `/data/maps/` on the API volume:
 

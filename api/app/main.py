@@ -11,7 +11,7 @@ from typing import Any
 import httpx
 from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse, Response, StreamingResponse
 from pydantic import BaseModel, Field
 
 from . import (
@@ -21,6 +21,7 @@ from . import (
     auth,
     datalink,
     decoders,
+    export,
     flightlog,
     health,
     modes,
@@ -28,11 +29,13 @@ from . import (
     range_study,
     rec,
     report_html,
+    retention,
     sats,
     schedule,
     sdr,
     store,
     tiles,
+    update_check,
 )
 
 
@@ -48,10 +51,14 @@ async def lifespan(_app: FastAPI):
     restore = asyncio.create_task(modes.restore())  # volta ao último modo escolhido
     guard = asyncio.create_task(sdr.guard_loop())
     agenda = asyncio.create_task(schedule.scheduler_loop())
+    retain = asyncio.create_task(retention.retention_loop())
+    updates = asyncio.create_task(update_check.update_loop())
     yield
     restore.cancel()
     guard.cancel()
     agenda.cancel()
+    retain.cancel()
+    updates.cancel()
     await rec.stop()
     await sdr.stop_proc()  # não deixa o container da sonda órfão
     range_study.study.save()
@@ -141,6 +148,8 @@ class ConfigIn(BaseModel):
     tiles_max_mb: float | None = None
     adsb_serial: str | None = None
     sdr_serial: str | None = None
+    retention: dict[str, int | None] | None = None
+    update_check: bool | None = None
 
 
 @app.get("/api/health")
@@ -371,12 +380,76 @@ async def log_events(limit: int = 100) -> list[dict[str, Any]]:
 
 
 @app.get("/api/log/export.csv")
-async def log_export(since: float | None = None, until: float | None = None, q: str | None = None) -> PlainTextResponse:
-    return PlainTextResponse(
-        flightlog.export_csv(since, until, q),
-        media_type="text/csv; charset=utf-8",
-        headers={"Content-Disposition": 'attachment; filename="adsb-log.csv"'},
-    )
+async def log_export(since: float | None = None, until: float | None = None, q: str | None = None) -> Response:
+    """Apelido de GET /api/export/sightings.csv (mantém o link antigo do Registro)."""
+    if q:
+        # filtro textual só no apelido legado (export genérico não tem q)
+        return PlainTextResponse(
+            flightlog.export_csv(since, until, q),
+            media_type="text/csv; charset=utf-8",
+            headers={"Content-Disposition": 'attachment; filename="adsb-log.csv"'},
+        )
+    return export.stream("sightings", "csv", since, until)
+
+
+@app.get("/api/export/{name}")
+async def export_dataset(name: str, since: float | None = None, until: float | None = None) -> StreamingResponse:
+    """GET /api/export/{dataset}.{csv|jsonl}?since=&until= — Parquet: ver docstring de export.py."""
+    if "." not in name:
+        raise HTTPException(404, "use dataset.csv ou dataset.jsonl")
+    dataset, fmt = name.rsplit(".", 1)
+    dataset, fmt = dataset.lower(), fmt.lower()
+    if dataset not in export.DATASETS:
+        raise HTTPException(404, "conjunto desconhecido")
+    if fmt == "parquet":
+        raise HTTPException(
+            501,
+            "parquet não embutido (pyarrow ~150 MB). "
+            "Exporte CSV e converta: duckdb -c \"COPY (SELECT * FROM read_csv('x.csv')) TO 'x.parquet'\"",
+        )
+    if fmt not in export.FORMATS:
+        raise HTTPException(404, "formato desconhecido")
+    return export.stream(dataset, fmt, since, until)
+
+
+@app.get("/api/data")
+async def data_summary() -> dict[str, Any]:
+    return await asyncio.to_thread(retention.sizes)
+
+
+class RetentionPurgeIn(BaseModel):
+    confirm: str = ""
+    retention: dict[str, int | None] | None = None
+
+
+@app.post("/api/data/retention/simulate")
+async def data_retention_simulate(body: RetentionPurgeIn | None = None) -> dict[str, Any]:
+    cfg = retention.retention_cfg()
+    if body and body.retention is not None:
+        cfg = {**cfg, **body.retention}
+        for k, v in list(cfg.items()):
+            if v is not None and int(v) <= 0:
+                cfg[k] = None
+    return {"simulate": await asyncio.to_thread(retention.simulate, cfg), "retention": cfg}
+
+
+@app.post("/api/data/retention/purge")
+async def data_retention_purge(body: RetentionPurgeIn) -> dict[str, Any]:
+    if (body.confirm or "").strip() != retention.CONFIRM_PHRASE:
+        raise HTTPException(400, f'digite "{retention.CONFIRM_PHRASE}" para confirmar')
+    cfg = retention.retention_cfg()
+    if body.retention is not None:
+        cfg = {**cfg, **body.retention}
+        for k, v in list(cfg.items()):
+            if v is not None and int(v) <= 0:
+                cfg[k] = None
+    result = await asyncio.to_thread(retention.run, cfg)
+    return {"ok": True, **result}
+
+
+@app.get("/api/update")
+async def get_update() -> dict[str, Any]:
+    return update_check.status()
 
 
 @app.get("/api/log/{sighting_id}/track")

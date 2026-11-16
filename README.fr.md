@@ -34,7 +34,7 @@ Le projet s’adresse à toute personne qui souhaite observer son propre espace 
 | [Capteurs ISM](#capteurs-ism-433-mhz) | Stations météo, thermomètres et autres capteurs sans fil | 433,92 MHz |
 | [Satellites](#images-satellite-meteor-m) | Images des satellites Meteor-M, verdict et SNR par passage | 137,9 MHz |
 
-Outre les récepteurs, le panneau propose un [agenda](#agenda) (satellites, radiosondes, modes et enregistrement audio), un onglet [Santé](#santé) pour le récepteur et l’antenne, des [alertes](#alertes) uniquement dans le navigateur, un [journal des aéronefs](#journal-des-aéronefs), une [étude de portée](#étude-de-portée), des [graphiques de performance](#graphiques), des [repères](#repères) et une interface en [cinq langues](#langues-et-apparence).
+Outre les récepteurs, le panneau propose un [agenda](#agenda) (satellites, radiosondes, modes et enregistrement audio), un onglet [Santé](#santé) pour le récepteur et l’antenne, des [alertes](#alertes) uniquement dans le navigateur, un [journal des aéronefs](#journal-des-aéronefs), une [étude de portée](#étude-de-portée), des [données](#données) (export et rétention), des [graphiques de performance](#graphiques), des [repères](#repères), une [installation sur téléphone](#installer-sur-le-téléphone-pwa) et une interface en [cinq langues](#langues-et-apparence).
 
 ### Panneau et échelle d’accord
 
@@ -148,6 +148,23 @@ L’onglet Agenda montre qui prend le récepteur dans les 48 prochaines heures :
 
 L’onglet Santé regroupe le diagnostic du récepteur et de l’antenne : dongles USB détectés, avertissements (pilote TV chargé, USB occupé, disque plein, TLE ancien), état des conteneurs, usage disque et une mesure du plancher de bruit par bande (FM, aviation, Meteor, AIS, sondes, ISM et ADS-B). La mesure met l’ADS-B en pause environ une minute et permet de comparer antennes ou emplacements par le delta en dB. Le RTL-SDR Blog V4 a un TCXO (±1 ppm) ; le calibrage PPM n’est pas nécessaire.
 
+### Données
+
+Dans l’onglet Réglages, la section Données liste chaque ensemble enregistré (passages et positions ADS-B, événements, datalink, AIS, APRS, ISM, sondes, alertes, portée, santé…) : nombre de lignes, taille approximative et export CSV ou JSONL avec filtre de dates. La rétention par ensemble (par défaut : jamais pour passages, positions et portée ; 90–365 jours pour le reste ; captures satellite vides après 7 jours) s’exécute chaque jour vers 03 h 30 ; on peut simuler ce qui serait effacé et lancer « Effacer maintenant » avec confirmation saisie. Rien ne quitte la machine. Parquet n’est pas dans l’API (pyarrow grossirait l’image de plus de 10 %) ; convertissez le CSV sur l’hôte avec DuckDB :
+
+```bash
+duckdb -c "COPY (SELECT * FROM read_csv('x.csv')) TO 'x.parquet'"
+```
+
+### Installer sur le téléphone (PWA)
+
+Le panneau est une Progressive Web App : manifeste, service worker (coque et assets seulement ; jamais `/api/`) et installation comme application. Elle ne fonctionne qu’en contexte sécurisé (HTTPS ou `localhost`).
+
+- **Android / Chrome :** menu → « Ajouter à l’écran d’accueil » (ou « Installer l’application »).
+- **iOS / Safari :** Partager → « Sur l’écran d’accueil ».
+
+Hors de `localhost`, utilisez HTTPS. Sur le réseau Tailscale, avec le panneau sur `127.0.0.1:3090`, par exemple `tailscale serve --bg 3090` (vérifiez `tailscale serve --help` pour votre version). Le même HTTPS active aussi les notifications système du navigateur.
+
 ### Langues et apparence
 
 L’interface est disponible en portugais (par défaut), anglais, espagnol, français et russe, avec des nombres et des dates au format de chaque langue. Des thèmes clair et sombre sont proposés, et le panneau s’adapte aux écrans de téléphone. L’installateur parle lui aussi les cinq langues, selon la langue du système.
@@ -202,7 +219,7 @@ Par défaut, le panneau ne s’ouvre que sur l’ordinateur lui-même. L’insta
 
 Avec les options 2 ou 3, ouvrez `http://<adresse-de-la-station>:3090` sur un autre appareil (par exemple le nom ou l’IP de la machine dans Tailscale). Les liens vers tar1090 et vers les graphiques suivent automatiquement l’adresse utilisée et passent par le même proxy authentifié sur le port `:8089`. Le port de l’API (`8000`) n’écoute que sur `127.0.0.1`. Avec l’option 3, Tailscale doit être connecté avant le démarrage de Docker. Avec un mot de passe, seul l’admin change le mode du récepteur ; l’API contrôle le Docker de la machine : n’autorisez l’accès que sur des réseaux de confiance.
 
-Les notifications système du navigateur (API Notification) n’existent qu’en HTTPS ou sur `localhost`. Sur `http://100.x.y.z` elles n’apparaissent pas ; la cloche, le toast et le titre de l’onglet continuent de fonctionner. Pour du HTTPS sur le réseau Tailscale, avec le panneau uniquement sur `127.0.0.1:3090`, utilisez par exemple `tailscale serve --bg 3090` (vérifiez `tailscale serve --help` pour votre version).
+Les notifications système du navigateur (API Notification) et l’[installation en PWA](#installer-sur-le-téléphone-pwa) n’existent qu’en HTTPS ou sur `localhost`. Sur `http://100.x.y.z` elles n’apparaissent pas ; la cloche, le toast et le titre de l’onglet continuent de fonctionner. Pour du HTTPS sur le réseau Tailscale, avec le panneau uniquement sur `127.0.0.1:3090`, utilisez par exemple `tailscale serve --bg 3090` (vérifiez `tailscale serve --help` pour votre version).
 
 Pour changer d’option plus tard, relancez `./install.sh`, ou modifiez `URUTAU_BIND` dans `.env` puis exécutez `docker compose up -d`.
 
@@ -235,6 +252,7 @@ Le panneau ne se connecte à internet que pour obtenir des informations impossib
 | Carte hors ligne (optionnel) | fichier PMTiles local sous `/data/maps/` | aucune |
 | Immatriculation et type des aéronefs | base de données fournie avec tar1090 | préfixe du code de l’aéronef |
 | Photo de l’aéronef, à la sélection | planespotters.net | code et immatriculation de l’aéronef |
+| Avis de nouvelle version (optionnel) | GitHub Releases | si `update_check` est activé dans Réglages → Données, consultation une fois par jour ; User-Agent `urutau-update-check` ; n’installe jamais tout seul |
 
 Le rapport de portée HTML embarque Leaflet ; il ne télécharge pas de bibliothèque depuis un CDN. Pour une carte hors ligne, générez un extrait PMTiles (licence ODbL / attribution OpenStreetMap et Protomaps) et placez le fichier dans `/data/maps/` sur le volume de l’API :
 
