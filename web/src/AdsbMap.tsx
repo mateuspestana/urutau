@@ -15,7 +15,9 @@ type Props = {
   rangeOutline?: RangePoint[]
   firstContacts?: RangePoint[]
   lastContacts?: RangePoint[]
-  showRange?: boolean
+  showRangeOutline?: boolean
+  showRangeFirst?: boolean
+  showRangeLast?: boolean
   track?: { label: string; points: TrackPoint[] } | null
   selectedHex?: string | null
   onSelect?: (hex: string | null) => void
@@ -104,7 +106,9 @@ export function AdsbMap({
   rangeOutline = [],
   firstContacts = [],
   lastContacts = [],
-  showRange = true,
+  showRangeOutline = true,
+  showRangeFirst = true,
+  showRangeLast = true,
   track = null,
   selectedHex = null,
   onSelect,
@@ -184,18 +188,20 @@ export function AdsbMap({
       .bindPopup('<strong>Receptor</strong>')
       .addTo(layer)
 
-    if (showRange && rangeOutline.length > 2) {
+    if (showRangeOutline && rangeOutline.length > 2) {
       L.polygon(
         rangeOutline.map((p) => [p.lat, p.lon] as [number, number]),
         { color: '#e85d2a', weight: 2, fillColor: '#ff6b35', fillOpacity: 0.15, opacity: 0.9, interactive: false },
       ).addTo(layer)
     }
-    if (showRange) {
+    if (showRangeFirst) {
       for (const p of firstContacts.slice(-80)) {
         L.circleMarker([p.lat, p.lon], { radius: 3, color: '#3ddeb5', fillColor: '#3ddeb5', fillOpacity: 0.7, weight: 1 })
           .bindPopup(`<strong>1ª visão</strong> ${p.flight || p.hex}<br/>${p.km} km · az ${p.bearing}°`)
           .addTo(layer)
       }
+    }
+    if (showRangeLast) {
       for (const p of lastContacts.slice(-80)) {
         L.circleMarker([p.lat, p.lon], { radius: 3, color: '#ff6b6b', fillColor: '#ff6b6b', fillOpacity: 0.7, weight: 1 })
           .bindPopup(`<strong>Sumiu</strong> ${p.flight || p.hex}<br/>${p.km} km · ${p.duration_s ?? '?'}s visível`)
@@ -217,7 +223,7 @@ export function AdsbMap({
         .bindPopup(`<strong>${track.label}</strong> · ${t('registro')}<br/>${last.km ?? '?'} km · alt ${last.alt ?? '?'}`)
         .addTo(layer)
     }
-  }, [ready, center, showRings, showRange, rangeOutline, firstContacts, lastContacts, markers, track])
+  }, [ready, center, showRings, showRangeOutline, showRangeFirst, showRangeLast, rangeOutline, firstContacts, lastContacts, markers, track])
 
   // enquadra a trilha do registro só quando ela muda
   useEffect(() => {

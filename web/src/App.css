@@ -2675,3 +2675,218 @@ fieldset {
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 10px;
 }
+
+/* ---------- modo torre ---------- */
+.tab-torre {
+  padding: 0;
+}
+.tower {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-height: calc(100vh - 220px);
+  font-family: var(--font-mono);
+  background: var(--bg);
+}
+.tower-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+  padding: 12px 16px;
+  background: var(--bg-elev);
+  border-bottom: 1px solid var(--line-strong);
+}
+.tower-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-text);
+}
+.tower-mark {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.tower-clocks {
+  display: flex;
+  gap: 16px;
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+}
+.tower-clocks em {
+  font-style: normal;
+  color: var(--muted);
+  margin-right: 6px;
+}
+.tower-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.tower-stats .on-air {
+  color: var(--accent-text);
+}
+.tower-emerg {
+  color: var(--danger);
+  font-weight: 600;
+}
+.tower-actions {
+  margin-left: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.tower-actions kbd {
+  font-size: 11px;
+  padding: 1px 5px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--muted);
+}
+.tower-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(220px, 0.6fr) minmax(0, 1.2fr);
+  gap: 1px;
+  background: var(--line);
+  flex: 1;
+  min-height: 480px;
+}
+@media (max-width: 1100px) {
+  .tower-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.tower-panel {
+  background: var(--bg-elev);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.tower-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--font-text);
+}
+.tower-panel-head h2 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+.tower-panel-head input {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  min-width: 160px;
+}
+.tower-table-wrap {
+  overflow: auto;
+  flex: 1;
+}
+.tower-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.tower-table th {
+  position: sticky;
+  top: 0;
+  background: var(--bg-elev);
+  text-align: left;
+  font-weight: 500;
+  color: var(--muted);
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--line);
+}
+.tower-table td {
+  padding: 5px 10px;
+  border-bottom: 1px solid var(--line);
+}
+.tower-table tr {
+  cursor: pointer;
+}
+.tower-table tr:hover {
+  background: color-mix(in oklab, var(--accent) 8%, transparent);
+}
+.tower-table tr.sel {
+  background: color-mix(in oklab, var(--accent) 16%, transparent);
+  outline: 1px solid color-mix(in oklab, var(--accent) 40%, transparent);
+}
+.tower-table tr.emerg td,
+.tower-table .emerg,
+.tower-dl .emerg {
+  color: var(--danger);
+  font-weight: 600;
+}
+.tower-table .call {
+  font-weight: 600;
+}
+.tower-table .mono,
+.tower .mono {
+  font-family: var(--font-mono);
+  letter-spacing: 0.02em;
+}
+.tower-dl {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  margin: 0;
+  font-size: 13px;
+}
+.tower-dl > div {
+  display: grid;
+  grid-template-columns: 7rem 1fr;
+  gap: 8px;
+}
+.tower-dl dt {
+  color: var(--muted);
+  margin: 0;
+}
+.tower-dl dd {
+  margin: 0;
+}
+.tower-feed-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  flex: 1;
+  font-size: 12px;
+}
+.tower-feed-list li {
+  display: grid;
+  grid-template-columns: 4.5rem 3.2rem 5.5rem 2.5rem 1fr;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--line);
+  align-items: baseline;
+}
+.tower-feed-list li.hit {
+  background: color-mix(in oklab, var(--accent) 10%, transparent);
+}
+.tower-feed-list .time,
+.tower-feed-list .id {
+  color: var(--muted);
+}
+.tower-feed-list .src {
+  color: var(--accent-text);
+  font-weight: 600;
+}
+.tower-feed-list .txt {
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tower-panel > .hint {
+  padding: 12px;
+  font-family: var(--font-text);
+}

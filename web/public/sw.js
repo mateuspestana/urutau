@@ -3,7 +3,7 @@
    Mantém o casco offline; nunca cacheia /api/ (dados ao vivo e autenticação).
    A constante APP_VERSION deve bater com web/package.json (conferido por pwa-check.mjs).
    HTTPS fora do localhost: `tailscale serve --bg 3090` (ou `tailscale serve --bg http://127.0.0.1:3090`). */
-const APP_VERSION = '0.4.0'
+const APP_VERSION = '0.5.0'
 const CACHE = `urutau-${APP_VERSION}`
 
 const SHELL = [

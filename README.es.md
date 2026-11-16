@@ -34,7 +34,7 @@ El proyecto está pensado para quien quiera observar su propio espacio aéreo y 
 | [Sensores ISM](#sensores-ism-433-mhz) | Estaciones meteorológicas, termómetros y otros sensores inalámbricos | 433,92 MHz |
 | [Satélites](#imágenes-de-satélite-meteor-m) | Imágenes de los satélites Meteor-M, veredicto y SNR por pase | 137,9 MHz |
 
-Además de los receptores, el panel ofrece [agenda](#agenda) (satélites, radiosondas, modos y grabación de audio), [salud](#salud) del receptor y de la antena, [alertas](#alertas) solo en el navegador, [registro de aeronaves](#registro-de-aeronaves), [estudio de alcance](#estudio-de-alcance), [datos](#datos) (exportación y retención), [gráficos de rendimiento](#gráficos), [marcadores](#marcadores), [instalación en el móvil](#instalar-en-el-móvil-pwa) e interfaz en [cinco idiomas](#idiomas-y-apariencia).
+Además de los receptores, el panel ofrece [agenda](#agenda) (satélites, radiosondas, modos y grabación de audio), [salud](#salud) del receptor y de la antena, [alertas](#alertas) solo en el navegador, [registro de aeronaves](#registro-de-aeronaves), [estudio de alcance](#estudio-de-alcance), [torre](#torre-ads-b--acars) (consola ADS-B + ACARS), [datos](#datos) (exportación y retención), [gráficos de rendimiento](#gráficos), [marcadores](#marcadores), [instalación en el móvil](#instalar-en-el-móvil-pwa) e interfaz en [cinco idiomas](#idiomas-y-apariencia).
 
 ### Panel y escala de sintonía
 
@@ -124,7 +124,13 @@ Cada aeronave recibida se registra en una base SQLite, incluidas las que no tran
 
 ### Estudio de alcance
 
-Mientras ADS-B está activo, Urutau mide de forma continua el alcance de la estación en 360 sectores de 1°, a partir del primer y el último contacto de cada aeronave. El contorno resultante se suaviza (interpolación de huecos, mediana circular y filtro gaussiano) para que una aeronave aislada no produzca un pico artificial; el máximo bruto sigue disponible en las estadísticas. El contorno puede mostrarse en el mapa y exportarse como un informe HTML autónomo.
+Mientras ADS-B está activo, Urutau mide de forma continua el alcance de la estación en 360 sectores de 1°, a partir del primer y el último contacto de cada aeronave. El contorno resultante se suaviza (interpolación de huecos, mediana circular y filtro gaussiano) para que una aeronave aislada no produzca un pico artificial; el máximo bruto sigue disponible en las estadísticas. En el mapa, el contorno, los puntos verdes (apareció) y los rojos (desapareció) se encienden y apagan por separado. El estudio también exporta un informe HTML autónomo.
+
+### Torre (ADS-B + ACARS)
+
+La pestaña Torre es una consola sin mapa: lista de tráfico ADS-B, detalle del seleccionado y feed ACARS/VDL2, cruzados por hex/vuelo/matrícula. Relojes UTC y local, sellos de modo y Esc para salir. Pensada para seguir el tráfico y el datalink en la misma pantalla.
+
+![Modo torre](docs/img/torre-en.png)
 
 ![Estudio de alcance](docs/img/alcance-en.png)
 

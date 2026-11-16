@@ -34,7 +34,7 @@ The project is meant for anyone who wants to observe their own airspace and wate
 | [ISM sensors](#ism-sensors-433-mhz) | Weather stations, thermometers and other wireless sensors | 433.92 MHz |
 | [Satellites](#satellite-images-meteor-m) | Meteor-M satellite images, verdict and SNR per pass | 137.9 MHz |
 
-Beyond the receivers, the panel offers a [schedule](#schedule) (satellites, radiosondes, modes and audio recording), [health](#health) checks for the receiver and antenna, browser-only [alerts](#alerts), an [aircraft log](#aircraft-log), a [range study](#range-study), [data](#data) (export and retention), [performance graphs](#graphs), [markers](#markers), [phone install](#install-on-your-phone-pwa) and an interface in [five languages](#languages-and-appearance).
+Beyond the receivers, the panel offers a [schedule](#schedule) (satellites, radiosondes, modes and audio recording), [health](#health) checks for the receiver and antenna, browser-only [alerts](#alerts), an [aircraft log](#aircraft-log), a [range study](#range-study), a [tower](#tower-ads-b--acars) console (ADS-B + ACARS), [data](#data) (export and retention), [performance graphs](#graphs), [markers](#markers), [phone install](#install-on-your-phone-pwa) and an interface in [five languages](#languages-and-appearance).
 
 ### Panel and tuning scale
 
@@ -124,7 +124,13 @@ Every aircraft received is logged in an SQLite database, including those that do
 
 ### Range study
 
-While ADS-B is on, Urutau continuously measures the station’s range in 360 sectors of 1°, from each aircraft’s first and last contact. The resulting outline is smoothed (gap interpolation, circular median and Gaussian filter), so that a single aircraft does not create an artificial spike; the raw maximum remains available in the statistics. The outline can be shown on the map and exported as a standalone HTML report.
+While ADS-B is on, Urutau continuously measures the station’s range in 360 sectors of 1°, from each aircraft’s first and last contact. The resulting outline is smoothed (gap interpolation, circular median and Gaussian filter), so that a single aircraft does not create an artificial spike; the raw maximum remains available in the statistics. On the map, the outline, green dots (first seen) and red dots (last seen) can each be toggled on or off. The study also exports a standalone HTML report.
+
+### Tower (ADS-B + ACARS)
+
+The Tower tab is a map-free console: ADS-B traffic list, selected aircraft detail and ACARS/VDL2 feed, cross-linked by hex/flight/registration. UTC and local clocks, mode badges and Esc to leave. Meant for watching traffic and datalink on one screen.
+
+![Tower mode](docs/img/torre-en.png)
 
 ![Range study](docs/img/alcance-en.png)
 

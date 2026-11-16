@@ -34,7 +34,7 @@ Le projet s’adresse à toute personne qui souhaite observer son propre espace 
 | [Capteurs ISM](#capteurs-ism-433-mhz) | Stations météo, thermomètres et autres capteurs sans fil | 433,92 MHz |
 | [Satellites](#images-satellite-meteor-m) | Images des satellites Meteor-M, verdict et SNR par passage | 137,9 MHz |
 
-Outre les récepteurs, le panneau propose un [agenda](#agenda) (satellites, radiosondes, modes et enregistrement audio), un onglet [Santé](#santé) pour le récepteur et l’antenne, des [alertes](#alertes) uniquement dans le navigateur, un [journal des aéronefs](#journal-des-aéronefs), une [étude de portée](#étude-de-portée), des [données](#données) (export et rétention), des [graphiques de performance](#graphiques), des [repères](#repères), une [installation sur téléphone](#installer-sur-le-téléphone-pwa) et une interface en [cinq langues](#langues-et-apparence).
+Outre les récepteurs, le panneau propose un [agenda](#agenda) (satellites, radiosondes, modes et enregistrement audio), un onglet [Santé](#santé) pour le récepteur et l’antenne, des [alertes](#alertes) uniquement dans le navigateur, un [journal des aéronefs](#journal-des-aéronefs), une [étude de portée](#étude-de-portée), une [tour](#tour-ads-b--acars) (console ADS-B + ACARS), des [données](#données) (export et rétention), des [graphiques de performance](#graphiques), des [repères](#repères), une [installation sur téléphone](#installer-sur-le-téléphone-pwa) et une interface en [cinq langues](#langues-et-apparence).
 
 ### Panneau et échelle d’accord
 
@@ -124,7 +124,13 @@ Chaque aéronef reçu est enregistré dans une base SQLite, y compris ceux qui n
 
 ### Étude de portée
 
-Tant que l’ADS-B est actif, Urutau mesure en continu la portée de la station sur 360 secteurs de 1°, à partir du premier et du dernier contact de chaque aéronef. Le contour obtenu est lissé (interpolation des lacunes, médiane circulaire et filtre gaussien), de sorte qu’un aéronef isolé ne crée pas de pic artificiel ; le maximum brut reste disponible dans les statistiques. Le contour peut être affiché sur la carte et exporté sous forme de rapport HTML autonome.
+Tant que l’ADS-B est actif, Urutau mesure en continu la portée de la station sur 360 secteurs de 1°, à partir du premier et du dernier contact de chaque aéronef. Le contour obtenu est lissé (interpolation des lacunes, médiane circulaire et filtre gaussien), de sorte qu’un aéronef isolé ne crée pas de pic artificiel ; le maximum brut reste disponible dans les statistiques. Sur la carte, le contour, les points verts (apparition) et rouges (disparition) s’activent chacun séparément. L’étude exporte aussi un rapport HTML autonome.
+
+### Tour (ADS-B + ACARS)
+
+L’onglet Tour est une console sans carte : liste de trafic ADS-B, détail de la sélection et flux ACARS/VDL2, croisés par hex/vol/immatriculation. Horloges UTC et locale, pastilles de mode et Esc pour quitter. Pensée pour suivre le trafic et le datalink sur le même écran.
+
+![Mode tour](docs/img/torre-en.png)
 
 ![Étude de portée](docs/img/alcance-en.png)
 

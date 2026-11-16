@@ -15,7 +15,12 @@ type Props = {
   address?: string
   markers: Marker[]
   range: RangeSummary | null
-  showRange: boolean
+  showRangeOutline: boolean
+  showRangeFirst: boolean
+  showRangeLast: boolean
+  onToggleRangeOutline?: () => void
+  onToggleRangeFirst?: () => void
+  onToggleRangeLast?: () => void
   logTrack: { id: number; label: string; points: TrackPoint[] } | null
   onMapClick: (lat: number, lon: number) => void
   active: boolean
@@ -40,7 +45,12 @@ export function AdsbPanel({
   address,
   markers,
   range,
-  showRange,
+  showRangeOutline,
+  showRangeFirst,
+  showRangeLast,
+  onToggleRangeOutline,
+  onToggleRangeFirst,
+  onToggleRangeLast,
   logTrack,
   onMapClick,
   active,
@@ -332,6 +342,15 @@ export function AdsbPanel({
         <button type="button" className={showRings ? 'on' : ''} onClick={() => setShowRings(!showRings)}>
           {t('Anéis de distância')}
         </button>
+        <button type="button" className={showRangeOutline ? 'on' : ''} onClick={() => onToggleRangeOutline?.()}>
+          {t('Contorno de alcance')}
+        </button>
+        <button type="button" className={showRangeFirst ? 'on' : ''} onClick={() => onToggleRangeFirst?.()}>
+          {t('Pontos verdes (apareceu)')}
+        </button>
+        <button type="button" className={showRangeLast ? 'on' : ''} onClick={() => onToggleRangeLast?.()}>
+          {t('Pontos vermelhos (sumiu)')}
+        </button>
         <button type="button" className={follow ? 'on' : ''} onClick={() => setFollow(!follow)}>
           {t('Seguir selecionada')}
         </button>
@@ -350,7 +369,9 @@ export function AdsbPanel({
             center={center}
             aircraft={view}
             markers={markers}
-            showRange={showRange}
+            showRangeOutline={showRangeOutline}
+            showRangeFirst={showRangeFirst}
+            showRangeLast={showRangeLast}
             rangeOutline={range?.outline}
             firstContacts={range?.first_contacts}
             lastContacts={range?.last_contacts}

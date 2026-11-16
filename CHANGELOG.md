@@ -2,6 +2,13 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); as versões seguem o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [0.5.0] - 2026-11-16
+
+### Adicionado
+
+- Aba Torre: consola ADS-B + ACARS/VDL2 sem mapa (tráfego, seleção cruzada com datalink, feed ao vivo).
+- No estudo de alcance, o contorno, os pontos verdes (apareceu) e os vermelhos (sumiu) ligam e desligam cada um por si no mapa.
+
 ## [0.4.0] - 2026-11-16
 
 ### Adicionado
@@ -90,11 +97,11 @@ Primeira versão pública.
 - Sem envio de dados a redes de rastreamento nem ao SondeHub; fontes distribuídas com o software.
 - A localização da antena é opcional e fica apenas no `.env` e no volume local.
 
+[0.5.0]: https://github.com/mateuspestana/urutau/releases/tag/v0.5.0
 [0.4.0]: https://github.com/mateuspestana/urutau/releases/tag/v0.4.0
 [0.3.0]: https://github.com/mateuspestana/urutau/releases/tag/v0.3.0
 [0.2.0]: https://github.com/mateuspestana/urutau/releases/tag/v0.2.0
 [0.1.6]: https://github.com/mateuspestana/urutau/releases/tag/v0.1.6
-
 [0.1.5]: https://github.com/mateuspestana/urutau/releases/tag/v0.1.5
 [0.1.4]: https://github.com/mateuspestana/urutau/releases/tag/v0.1.4
 [0.1.3]: https://github.com/mateuspestana/urutau/releases/tag/v0.1.3

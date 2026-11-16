@@ -36,7 +36,7 @@ O projeto se destina a quem quer observar o próprio espaço aéreo e marítimo 
 | [Sensores ISM](#sensores-ism-433-mhz) | Estações meteorológicas, termômetros e outros sensores sem fio | 433,92 MHz |
 | [Satélites](#imagens-de-satélite-meteor-m) | Imagens dos satélites Meteor-M, veredito e SNR por passagem | 137,9 MHz |
 
-Além dos receptores, o painel oferece [agenda](#agenda) (satélites, radiossondas, modos e gravação de áudio), [saúde](#saúde) do receptor e da antena, [alertas](#alertas) só no navegador, [registro de aeronaves](#registro-de-aeronaves), [estudo de alcance](#estudo-de-alcance), [dados](#dados) (exportação e retenção), [gráficos de desempenho](#gráficos), [marcadores](#marcadores), [instalação no celular](#instalar-no-celular-pwa) e interface em [cinco idiomas](#idiomas-e-aparência).
+Além dos receptores, o painel oferece [agenda](#agenda) (satélites, radiossondas, modos e gravação de áudio), [saúde](#saúde) do receptor e da antena, [alertas](#alertas) só no navegador, [registro de aeronaves](#registro-de-aeronaves), [estudo de alcance](#estudo-de-alcance), [torre](#torre-ads-b--acars) (consola ADS-B + ACARS), [dados](#dados) (exportação e retenção), [gráficos de desempenho](#gráficos), [marcadores](#marcadores), [instalação no celular](#instalar-no-celular-pwa) e interface em [cinco idiomas](#idiomas-e-aparência).
 
 ### Painel e escala de sintonia
 
@@ -126,7 +126,13 @@ Toda aeronave recebida é registrada em um banco SQLite, inclusive as que não t
 
 ### Estudo de alcance
 
-Enquanto o ADS-B está ligado, o Urutau mede continuamente o alcance da estação em 360 setores de 1°, a partir do primeiro e do último contato de cada aeronave. O contorno resultante é suavizado (interpolação de lacunas, mediana circular e filtro gaussiano), de modo que uma aeronave isolada não produza um pico artificial; o valor máximo bruto continua disponível nas estatísticas. O contorno pode ser exibido no mapa e exportado como um relatório HTML autônomo.
+Enquanto o ADS-B está ligado, o Urutau mede continuamente o alcance da estação em 360 setores de 1°, a partir do primeiro e do último contato de cada aeronave. O contorno resultante é suavizado (interpolação de lacunas, mediana circular e filtro gaussiano), de modo que uma aeronave isolada não produza um pico artificial; o valor máximo bruto continua disponível nas estatísticas. No mapa, o contorno, os pontos verdes (apareceu) e os vermelhos (sumiu) ligam e desligam cada um por si. O estudo também exporta um relatório HTML autônomo.
+
+### Torre (ADS-B + ACARS)
+
+A aba Torre é uma consola sem mapa: lista de tráfego ADS-B, detalhe do selecionado e feed ACARS/VDL2, com cruzamento por hex/voo/matrícula. Relógio UTC e local, selos de modo e atalho Esc para sair. Pensada para acompanhar o tráfego e o datalink na mesma tela.
+
+![Modo torre](docs/img/torre-pt.png)
 
 ![Estudo de alcance](docs/img/alcance-pt.png)
 

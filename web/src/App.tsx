@@ -44,6 +44,7 @@ import { fmtBytes } from './decoderUtil'
 import { fmtDate, fmtNum, LANGS, markApi, t, tApi, tn, useLang } from './i18n'
 import type { Lang } from './i18n'
 import { Login } from './Login'
+import { Tower } from './Tower'
 import { useAuth } from './useAuth'
 
 const PRESETS_FM = [90.3, 94.1, 98.1, 99.3, 101.3, 103.3, 105.1]
@@ -52,6 +53,7 @@ const PRESETS_AIR = [118.3, 119.0, 119.3, 119.35, 120.1, 120.75, 121.5, 122.8]
 const TABS: { id: string; label: string }[] = [
   { id: 'geral', label: markApi('Visão geral') },
   { id: 'adsb', label: 'ADS-B' },
+  { id: 'torre', label: markApi('Torre') },
   { id: 'navios', label: markApi('Navios') },
   { id: 'radio', label: markApi('Rádio') },
   { id: 'espectro', label: markApi('Espectro') },
@@ -137,7 +139,9 @@ export default function App() {
     lon: '' as string | number,
   })
   const [range, setRange] = useState<RangeSummary | null>(null)
-  const [showRange, setShowRange] = useState(true)
+  const [showRangeOutline, setShowRangeOutline] = useStored('range-outline', true)
+  const [showRangeFirst, setShowRangeFirst] = useStored('range-first', true)
+  const [showRangeLast, setShowRangeLast] = useStored('range-last', true)
   const [logTrack, setLogTrack] = useState<{ id: number; label: string; points: TrackPoint[] } | null>(null)
   const audio = usePcmAudio()
   const [tab, setTab] = useState(tabFromHash)
@@ -151,6 +155,7 @@ export default function App() {
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
   /** a config só preenche o formulário na 1ª carga (antes sobrescrevia o que o usuário digitava a cada 2,5 s) */
   const cfgLoaded = useRef(false)
+  const prevTabRef = useRef('adsb')
   const refresh = useCallback(async () => {
     try {
       const s = await api.status()
@@ -233,8 +238,11 @@ export default function App() {
     // "decod" abre a última subaba usada
     const t = target === 'decod' ? lastDecod : target
     if (DECOD.some((d) => d.id === t)) setLastDecod(t)
+    setTab((cur) => {
+      if (cur && cur !== 'torre') prevTabRef.current = cur
+      return t
+    })
     if (location.hash !== `#${t}`) location.hash = t
-    setTab(t)
     window.scrollTo({ top: 0 })
   }, [lastDecod, setLastDecod])
 
@@ -704,7 +712,12 @@ export default function App() {
           address={config?.address}
           markers={markers}
           range={range}
-          showRange={showRange}
+          showRangeOutline={showRangeOutline}
+          showRangeFirst={showRangeFirst}
+          showRangeLast={showRangeLast}
+          onToggleRangeOutline={() => setShowRangeOutline(!showRangeOutline)}
+          onToggleRangeFirst={() => setShowRangeFirst(!showRangeFirst)}
+          onToggleRangeLast={() => setShowRangeLast(!showRangeLast)}
           logTrack={logTrack}
           active={Boolean(status?.ultrafeeder?.running)}
           visible={tab === 'adsb'}
@@ -717,6 +730,17 @@ export default function App() {
               title: d.title || t('Ponto no mapa'),
             }))
           }
+        />
+      </div>
+
+      <div className="tab-body tab-torre" hidden={tab !== 'torre'}>
+        <Tower
+          status={status}
+          busy={busy}
+          visible={tab === 'torre'}
+          center={center}
+          run={(m, o) => runMode(m, undefined, o?.gain, o?.freqs)}
+          onExit={() => goto(prevTabRef.current && prevTabRef.current !== 'torre' ? prevTabRef.current : 'adsb')}
         />
       </div>
 
@@ -1108,8 +1132,14 @@ export default function App() {
             >
               {t('Zerar contorno')}
             </button>
-            <button type="button" className={showRange ? 'on' : ''} onClick={() => setShowRange((v) => !v)}>
-              {showRange ? t('Ocultar no mapa') : t('Mostrar no mapa')}
+            <button type="button" className={showRangeOutline ? 'on' : ''} onClick={() => setShowRangeOutline(!showRangeOutline)}>
+              {t('Contorno de alcance')}
+            </button>
+            <button type="button" className={showRangeFirst ? 'on' : ''} onClick={() => setShowRangeFirst(!showRangeFirst)}>
+              {t('Pontos verdes (apareceu)')}
+            </button>
+            <button type="button" className={showRangeLast ? 'on' : ''} onClick={() => setShowRangeLast(!showRangeLast)}>
+              {t('Pontos vermelhos (sumiu)')}
             </button>
             <button type="button" onClick={() => goto('adsb')}>
               {t('Ver no mapa')}
