@@ -2748,6 +2748,24 @@ fieldset {
   border-radius: 4px;
   color: var(--muted);
 }
+.tower-cycle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 18px;
+  padding: 8px 16px;
+  font-size: 12px;
+  background: var(--bg-elev);
+  border-bottom: 1px solid var(--line);
+}
+.tower-cycle label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.tower-cycle input[type='number'] {
+  width: 5.5em;
+}
 .tower-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(220px, 0.6fr) minmax(0, 1.2fr);

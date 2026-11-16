@@ -130,6 +130,8 @@ Mientras ADS-B está activo, Urutau mide de forma continua el alcance de la esta
 
 La pestaña Torre es una consola sin mapa: lista de tráfico ADS-B, detalle del seleccionado y feed ACARS/VDL2, cruzados por hex/vuelo/matrícula. Relojes UTC y local, sellos de modo y Esc para salir. Pensada para seguir el tráfico y el datalink en la misma pantalla.
 
+Con un solo dongle, la opción **Alternar ADS-B y ACARS** (desactivada por defecto) hace que la estación escuche ACARS unos segundos cuando hay una aeronave con señal fuerte y vuelva al ADS-B. Por defecto son 3 min de ADS-B y 60 s de ACARS, ajustables en la propia pestaña; mientras el ACARS está activo, el ADS-B queda detenido. Con dos dongles no hace falta.
+
 ![Modo torre](docs/img/torre-en.png)
 
 ![Estudio de alcance](docs/img/alcance-en.png)

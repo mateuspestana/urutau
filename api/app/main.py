@@ -35,6 +35,7 @@ from . import (
     sdr,
     store,
     tiles,
+    tower_cycle,
     update_check,
 )
 
@@ -53,12 +54,14 @@ async def lifespan(_app: FastAPI):
     agenda = asyncio.create_task(schedule.scheduler_loop())
     retain = asyncio.create_task(retention.retention_loop())
     updates = asyncio.create_task(update_check.update_loop())
+    tower = asyncio.create_task(tower_cycle.loop())
     yield
     restore.cancel()
     guard.cancel()
     agenda.cancel()
     retain.cancel()
     updates.cancel()
+    tower.cancel()
     await rec.stop()
     await sdr.stop_proc()  # não deixa o container da sonda órfão
     range_study.study.save()
@@ -150,6 +153,10 @@ class ConfigIn(BaseModel):
     sdr_serial: str | None = None
     retention: dict[str, int | None] | None = None
     update_check: bool | None = None
+    tower_cycle: bool | None = None
+    tower_adsb_s: float | None = None
+    tower_acars_s: float | None = None
+    tower_min_rssi: float | None = None
 
 
 @app.get("/api/health")
@@ -301,6 +308,11 @@ async def get_config() -> dict[str, Any]:
 async def put_config(body: ConfigIn) -> dict[str, Any]:
     patch = {k: v for k, v in body.model_dump().items() if v is not None}
     return store.save_config(patch)
+
+
+@app.get("/api/tower/cycle")
+async def tower_cycle_status() -> dict[str, Any]:
+    return tower_cycle.status()
 
 
 @app.get("/api/markers")

@@ -53,6 +53,25 @@ export type StationConfig = {
   alerts?: AlertRules
   retention?: RetentionConfig
   update_check?: boolean
+  tower_cycle?: boolean
+  tower_adsb_s?: number
+  tower_acars_s?: number
+  tower_min_rssi?: number
+}
+
+/** Ciclo ADS-B/ACARS da torre com um dongle só. */
+export type TowerCycle = {
+  enabled: boolean
+  run: 'off' | 'dual' | 'pausa' | 'adsb' | 'acars'
+  seconds_left: number | null
+  adsb_s: number
+  acars_s: number
+  min_rssi: number
+  cycles: number
+  restart_s: number | null
+  last_msgs: number | null
+  last_error: string
+  dual: boolean
 }
 
 /** Dias de retenção; null/0 = nunca. */
@@ -652,6 +671,7 @@ export const api = {
     }>('/api/diagnostics/noise', { method: 'POST', body: JSON.stringify(body) }),
   diagnosticsNoiseHistory: () =>
     j<{ measurements: NoiseMeasurement[]; count: number }>('/api/diagnostics/noise'),
+  towerCycle: () => j<TowerCycle>('/api/tower/cycle'),
   scheduleTimeline: (hours = 48) => j<ScheduleTimeline>(`/api/schedule/timeline?hours=${hours}`),
   scheduleEntries: () => j<ScheduleEntry[]>('/api/schedule/entries'),
   scheduleAdd: (body: ScheduleEntryIn) =>

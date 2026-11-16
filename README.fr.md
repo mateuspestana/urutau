@@ -130,6 +130,8 @@ Tant que l’ADS-B est actif, Urutau mesure en continu la portée de la station 
 
 L’onglet Tour est une console sans carte : liste de trafic ADS-B, détail de la sélection et flux ACARS/VDL2, croisés par hex/vol/immatriculation. Horloges UTC et locale, pastilles de mode et Esc pour quitter. Pensée pour suivre le trafic et le datalink sur le même écran.
 
+Avec un seul dongle, l’option **Alterner ADS-B et ACARS** (désactivée par défaut) fait écouter l’ACARS quelques secondes lorsqu’un aéronef à signal fort est présent, puis revenir à l’ADS-B. Par défaut : 3 min d’ADS-B et 60 s d’ACARS, réglables dans l’onglet ; pendant l’ACARS, l’ADS-B est à l’arrêt. Avec deux dongles, ce n’est pas nécessaire.
+
 ![Mode tour](docs/img/torre-en.png)
 
 ![Étude de portée](docs/img/alcance-en.png)

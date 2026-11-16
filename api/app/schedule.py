@@ -559,8 +559,12 @@ async def _apply_action(action: Action, mode: str) -> None:
         return
     if action.op == "start" and action.segment:
         # só assume o dongle em adsb/idle (nunca interrompe escuta manual)
-        if mode not in ("adsb", "idle"):
+        from . import tower_cycle
+        own = tower_cycle.owns_acars()  # ACARS do ciclo da torre cede ao satélite/sonda
+        if mode not in ("adsb", "idle") and not own:
             return
+        if own:
+            mode = "adsb"
         # respeita suppressed
         key = action.segment.mode
         if time.time() < float(suppressed.get(key, 0)):

@@ -2,7 +2,7 @@
 /** Consola estilo torre de controle: tráfego ADS-B + feed ACARS/VDL2, sem mapa. */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { api } from './api'
-import type { Aircraft, DatalinkMsg, StationStatus } from './api'
+import type { Aircraft, DatalinkMsg, StationStatus, TowerCycle } from './api'
 import { SQUAWK_EMERG, altFt, callsign, distKm, label } from './adsb'
 import { Icon } from './Icon'
 import { fmtNum, locale, markApi, t, tn } from './i18n'
@@ -46,6 +46,7 @@ export function Tower({ status, busy, visible, center, run, onExit }: Props) {
   const [sel, setSel] = useState<string | null>(null)
   const [now, setNow] = useState(() => Date.now())
   const [q, setQ] = useState('')
+  const [cyc, setCyc] = useState<TowerCycle | null>(null)
   const lastId = useRef(0)
   const listRef = useRef<HTMLDivElement>(null)
 
@@ -93,8 +94,12 @@ export function Tower({ status, busy, visible, center, run, onExit }: Props) {
         /* */
       }
     }, 2000)
+    const loadCyc = () => api.towerCycle().then(setCyc).catch(() => undefined)
+    loadCyc()
+    const c = setInterval(loadCyc, 3000)
     const tick = setInterval(() => setNow(Date.now()), 1000)
     return () => {
+      clearInterval(c)
       clearInterval(a)
       clearInterval(d)
       clearInterval(tick)
@@ -135,6 +140,22 @@ export function Tower({ status, busy, visible, center, run, onExit }: Props) {
     const freqs = status?.config?.acars_freqs
     run('acars', { freqs, gain: status?.config?.datalink_gain })
   }
+
+  const saveCycle = async (patch: Parameters<typeof api.saveConfig>[0]) => {
+    try {
+      await api.saveConfig(patch)
+      setCyc(await api.towerCycle())
+    } catch {
+      /* API fora */
+    }
+  }
+
+  const cycleLine = (() => {
+    if (!cyc || !cyc.enabled) return ''
+    if (cyc.run === 'adsb') return t('ciclo: ADS-B, troca em {s} s', { s: cyc.seconds_left ?? 0 })
+    if (cyc.run === 'acars') return t('ciclo: ACARS, volta ao ADS-B em {s} s', { s: cyc.seconds_left ?? 0 })
+    return t('ciclo em pausa')
+  })()
 
   return (
     <div className="tower">
@@ -183,6 +204,67 @@ export function Tower({ status, busy, visible, center, run, onExit }: Props) {
           </button>
         </div>
       </header>
+
+      <div className="tower-cycle">
+        <label className="check" title={t('Com um só dongle, a torre passa alguns segundos no ACARS quando há aeronave com sinal forte, e volta ao ADS-B.')}>
+          <input
+            type="checkbox"
+            checked={Boolean(cyc?.enabled)}
+            disabled={!canControl || Boolean(cyc?.dual)}
+            onChange={(e) => saveCycle({ tower_cycle: e.target.checked })}
+          />
+          {t('Alternar ADS-B e ACARS')}
+        </label>
+        {cyc?.dual ? <span className="muted">{t('dois dongles: não precisa alternar')}</span> : null}
+        {cyc?.enabled && !cyc.dual ? (
+          <>
+            <label>
+              {t('ADS-B (s)')}
+              <input
+                type="number"
+                min={60}
+                max={1800}
+                step={30}
+                defaultValue={cyc.adsb_s}
+                disabled={!canControl}
+                onBlur={(e) => saveCycle({ tower_adsb_s: Number(e.target.value) })}
+              />
+            </label>
+            <label>
+              {t('ACARS (s)')}
+              <input
+                type="number"
+                min={30}
+                max={600}
+                step={10}
+                defaultValue={cyc.acars_s}
+                disabled={!canControl}
+                onBlur={(e) => saveCycle({ tower_acars_s: Number(e.target.value) })}
+              />
+            </label>
+            <label>
+              {t('sinal mínimo (dBFS)')}
+              <input
+                type="number"
+                min={-50}
+                max={0}
+                step={1}
+                defaultValue={cyc.min_rssi}
+                disabled={!canControl}
+                onBlur={(e) => saveCycle({ tower_min_rssi: Number(e.target.value) })}
+              />
+            </label>
+            <span className="muted">{cycleLine}</span>
+            {cyc.cycles ? (
+              <span className="muted">
+                {tn('{n} ciclo', '{n} ciclos', cyc.cycles)}
+                {cyc.last_msgs != null ? ` · ${t('última janela: {n} msgs', { n: cyc.last_msgs })}` : ''}
+                {cyc.restart_s != null ? ` · ${t('ADS-B voltou em {s} s', { s: fmtNum(cyc.restart_s, 1) })}` : ''}
+              </span>
+            ) : null}
+          </>
+        ) : null}
+      </div>
 
       <div className="tower-grid">
         <section className="tower-panel tower-traffic">

@@ -791,6 +791,18 @@ const d: Dict = {
   'Gravações (cota GB)': 'Enregistrements (quota Go)',
   'AIS': 'AIS',
   'ISM': 'ISM',
+  'Alternar ADS-B e ACARS': 'Alterner ADS-B et ACARS',
+  'Com um só dongle, a torre passa alguns segundos no ACARS quando há aeronave com sinal forte, e volta ao ADS-B.': 'Avec un seul dongle, la tour passe quelques secondes en ACARS quand un aéronef a un signal fort, puis revient à l’ADS-B.',
+  'dois dongles: não precisa alternar': 'deux dongles : inutile d’alterner',
+  'ADS-B (s)': 'ADS-B (s)',
+  'ACARS (s)': 'ACARS (s)',
+  'sinal mínimo (dBFS)': 'signal minimal (dBFS)',
+  'ciclo: ADS-B, troca em {s} s': 'cycle : ADS-B, bascule dans {s} s',
+  'ciclo: ACARS, volta ao ADS-B em {s} s': 'cycle : ACARS, retour à l’ADS-B dans {s} s',
+  'ciclo em pausa': 'cycle en pause',
+  'última janela: {n} msgs': 'dernière fenêtre : {n} msgs',
+  'ADS-B voltou em {s} s': 'l’ADS-B est revenu en {s} s',
+  '{n} ciclos': { one: '{n} cycle', other: '{n} cycles' },
 }
 
 export default d

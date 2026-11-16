@@ -130,6 +130,8 @@ While ADS-B is on, Urutau continuously measures the station’s range in 360 sec
 
 The Tower tab is a map-free console: ADS-B traffic list, selected aircraft detail and ACARS/VDL2 feed, cross-linked by hex/flight/registration. UTC and local clocks, mode badges and Esc to leave. Meant for watching traffic and datalink on one screen.
 
+With a single dongle, the **Alternate ADS-B and ACARS** option (off by default) makes the station listen to ACARS for a few seconds when an aircraft with a strong signal is present, then return to ADS-B. The default is 3 min of ADS-B and 60 s of ACARS, adjustable in the tab itself; while ACARS is active, ADS-B is paused. With two dongles it is not needed.
+
 ![Tower mode](docs/img/torre-en.png)
 
 ![Range study](docs/img/alcance-en.png)

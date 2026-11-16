@@ -791,6 +791,18 @@ const d: Dict = {
   'Gravações (cota GB)': 'Записи (квота ГБ)',
   'AIS': 'AIS',
   'ISM': 'ISM',
+  'Alternar ADS-B e ACARS': 'Чередовать ADS-B и ACARS',
+  'Com um só dongle, a torre passa alguns segundos no ACARS quando há aeronave com sinal forte, e volta ao ADS-B.': 'С одним донглом башня на несколько секунд переходит на ACARS, когда есть самолёт с сильным сигналом, и возвращается к ADS-B.',
+  'dois dongles: não precisa alternar': 'два донгла: чередовать не нужно',
+  'ADS-B (s)': 'ADS-B (с)',
+  'ACARS (s)': 'ACARS (с)',
+  'sinal mínimo (dBFS)': 'минимальный сигнал (дБFS)',
+  'ciclo: ADS-B, troca em {s} s': 'цикл: ADS-B, переключение через {s} с',
+  'ciclo: ACARS, volta ao ADS-B em {s} s': 'цикл: ACARS, возврат к ADS-B через {s} с',
+  'ciclo em pausa': 'цикл приостановлен',
+  'última janela: {n} msgs': 'последнее окно: {n} сообщ.',
+  'ADS-B voltou em {s} s': 'ADS-B вернулся за {s} с',
+  '{n} ciclos': { one: '{n} цикл', few: '{n} цикла', many: '{n} циклов', other: '{n} цикла' },
 }
 
 export default d

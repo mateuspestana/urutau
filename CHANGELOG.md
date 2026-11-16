@@ -2,6 +2,14 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); as versões seguem o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [0.6.0] - 2026-11-16
+
+### Adicionado
+
+- Torre com um dongle só: a opção **Alternar ADS-B e ACARS** (desligada por padrão) passa alguns segundos no ACARS quando há aeronave com sinal forte e volta ao ADS-B. O padrão é 3 min de ADS-B e 60 s de ACARS, com sinal mínimo de -30 dBFS; os três valores são ajustáveis na aba Torre, que mostra a fase atual, o tempo até a próxima troca, as mensagens captadas na última janela e quanto o ADS-B levou para voltar.
+- O ciclo fica em pausa quando a pessoa troca de modo, quando a agenda assume o receptor (satélite e radiossonda têm prioridade e tomam o ACARS do ciclo) e com dois dongles.
+- Endpoint `GET /api/tower/cycle` com o estado do ciclo.
+
 ## [0.5.2] - 2026-11-16
 
 ### Corrigido
@@ -109,6 +117,7 @@ Primeira versão pública.
 - Sem envio de dados a redes de rastreamento nem ao SondeHub; fontes distribuídas com o software.
 - A localização da antena é opcional e fica apenas no `.env` e no volume local.
 
+[0.6.0]: https://github.com/mateuspestana/urutau/releases/tag/v0.6.0
 [0.5.2]: https://github.com/mateuspestana/urutau/releases/tag/v0.5.2
 [0.5.1]: https://github.com/mateuspestana/urutau/releases/tag/v0.5.1
 [0.5.0]: https://github.com/mateuspestana/urutau/releases/tag/v0.5.0

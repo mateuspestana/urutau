@@ -132,6 +132,8 @@ Enquanto o ADS-B está ligado, o Urutau mede continuamente o alcance da estaçã
 
 A aba Torre é uma consola sem mapa: lista de tráfego ADS-B, detalhe do selecionado e feed ACARS/VDL2, com cruzamento por hex/voo/matrícula. Relógio UTC e local, selos de modo e atalho Esc para sair. Pensada para acompanhar o tráfego e o datalink na mesma tela.
 
+Com um só dongle, a opção **Alternar ADS-B e ACARS** (desligada por padrão) faz a estação ouvir o ACARS por alguns segundos, quando há aeronave com sinal forte, e voltar ao ADS-B. O padrão é 3 min de ADS-B e 60 s de ACARS, ajustáveis na própria aba; enquanto o ACARS está ativo, o ADS-B fica parado. Com dois dongles não é necessário.
+
 ![Modo torre](docs/img/torre-pt.png)
 
 ![Estudo de alcance](docs/img/alcance-pt.png)
